@@ -1,7 +1,7 @@
-const dotenv = require('dotenv');
-const path = require('path');
+import path from 'path';
+import dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env') });
 
 const config = {
   port: process.env.PORT || 5000,
@@ -19,4 +19,4 @@ for (const key of requiredKeys) {
   }
 }
 
-module.exports = config;
+export default config;
