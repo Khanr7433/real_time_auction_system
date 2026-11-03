@@ -52,6 +52,12 @@ coverage/
 .next/
 !.next/README.md
 nuxt/.output/
+# Uploads
+uploads/*
+!uploads/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
+
 .nuxt/
 .vite/
 .cache/
@@ -197,8 +203,16 @@ reports/
 .firebase-tools/
 .sst/
 .output/
+# Uploads
+uploads/*
+!uploads/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
+
 
 
 .agents/
+Project_Synopsis_RealTimeAuction_Detailed.docx
+openspec
 # Keep this file itself tracked
 !.gitignore
