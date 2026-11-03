@@ -39,6 +39,10 @@ app.use(morgan('dev'));
 // Static uploads directory
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
+// Routes
+const authRoutes = require('./routes/auth.routes');
+app.use('/api/auth', authRoutes);
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'BidNow API', timestamp: new Date() });
