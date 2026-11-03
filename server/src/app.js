@@ -10,6 +10,7 @@ import config from './config/index.js';
 import connectDB from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import auctionRoutes from './routes/auction.routes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -44,6 +45,7 @@ app.use('/uploads', express.static(path.resolve(import.meta.dirname, '../uploads
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/auctions', auctionRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
