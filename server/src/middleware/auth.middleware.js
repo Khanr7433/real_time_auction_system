@@ -1,5 +1,5 @@
-const { verifyToken, isTokenInvalidated } = require('../utils/token');
-const User = require('../models/User');
+import { verifyToken, isTokenInvalidated } from '../utils/token.js';
+import User from '../models/User.js';
 
 const authenticate = async (req, res, next) => {
   try {
@@ -40,4 +40,4 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = authenticate;
+export default authenticate;
