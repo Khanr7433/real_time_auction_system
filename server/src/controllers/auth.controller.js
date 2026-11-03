@@ -44,8 +44,42 @@ const register = async (req, res, next) => {
 };
 
 // Placeholders for subsequent tasks
+// POST /api/auth/login
 const login = async (req, res, next) => {
-  res.status(501).json({ error: 'Not implemented' });
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Reject without revealing whether email or password was wrong
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (user.isSuspended) {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: user.toJSON(),
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const logout = async (req, res, next) => {
