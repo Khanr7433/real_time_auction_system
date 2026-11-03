@@ -1,13 +1,15 @@
-const http = require('http');
-const path = require('path');
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const { Server } = require('socket.io');
+import http from 'http';
+import path from 'path';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { Server } from 'socket.io';
 
-const config = require('./config');
-const connectDB = require('./config/db');
+import config from './config/index.js';
+import connectDB from './config/db.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -37,11 +39,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // Static uploads directory
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.resolve(import.meta.dirname, '../uploads')));
 
 // Routes
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
@@ -75,8 +75,13 @@ const startServer = async () => {
   });
 };
 
-if (require.main === module) {
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('app.js') ||
+  process.argv[1].endsWith('app')
+);
+
+if (isDirectRun) {
   startServer();
 }
 
-module.exports = { app, server, io, startServer };
+export { app, server, io, startServer };
