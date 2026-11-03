@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const config = require('../config');
+import jwt from 'jsonwebtoken';
+import config from '../config/index.js';
 
 // In-memory token blocklist for invalidated tokens (e.g. on logout)
 const tokenBlocklist = new Set();
@@ -33,7 +33,7 @@ const isTokenInvalidated = (token) => {
   return tokenBlocklist.has(token);
 };
 
-module.exports = {
+export {
   generateToken,
   verifyToken,
   invalidateToken,
