@@ -1,6 +1,6 @@
-const crypto = require('crypto');
-const User = require('../models/User');
-const { generateToken, invalidateToken } = require('../utils/token');
+import crypto from 'crypto';
+import User from '../models/User.js';
+import { generateToken, invalidateToken } from '../utils/token.js';
 
 // POST /api/auth/register
 const register = async (req, res, next) => {
@@ -169,7 +169,7 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export {
   register,
   login,
   logout,
