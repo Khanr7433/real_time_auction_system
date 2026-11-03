@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const { generateToken, invalidateToken } = require('../utils/token');
 
@@ -96,12 +97,76 @@ const logout = async (req, res, next) => {
   }
 };
 
+// POST /api/auth/forgot-password
 const forgotPassword = async (req, res, next) => {
-  res.status(501).json({ error: 'Not implemented' });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      // Return 200 to prevent account enumeration, but don't leak token
+      return res.status(200).json({ message: 'If this email is registered, a password reset link has been sent.' });
+    }
+
+    // Generate unhashed reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Token expires in 1 hour
+    user.resetPasswordToken = tokenHash;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+
+    // In a production app, send email with resetToken.
+    // For academic scope, return token in response for testing.
+    return res.status(200).json({
+      message: 'Password reset token generated successfully',
+      resetToken, // for testing / development API simulation
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
+// POST /api/auth/reset-password
 const resetPassword = async (req, res, next) => {
-  res.status(501).json({ error: 'Not implemented' });
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and newPassword are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: tokenHash,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Password reset token is invalid or has expired' });
+    }
+
+    // Hash new password and clear reset token fields
+    user.passwordHash = await User.hashPassword(newPassword);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password has been reset successfully. You can now log in.' });
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports = {
