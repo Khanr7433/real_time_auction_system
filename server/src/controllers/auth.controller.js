@@ -82,8 +82,18 @@ const login = async (req, res, next) => {
   }
 };
 
+// POST /api/auth/logout
 const logout = async (req, res, next) => {
-  res.status(501).json({ error: 'Not implemented' });
+  try {
+    const token = req.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    if (token) {
+      invalidateToken(token);
+    }
+
+    return res.status(200).json({ message: 'Logout successful. Session invalidated.' });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const forgotPassword = async (req, res, next) => {
