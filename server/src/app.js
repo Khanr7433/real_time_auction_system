@@ -41,7 +41,9 @@ app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // Routes
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
