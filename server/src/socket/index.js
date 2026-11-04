@@ -1,5 +1,6 @@
 import { verifyToken, isTokenInvalidated } from '../utils/token.js';
 import User from '../models/User.js';
+import registerBiddingHandlers from './bidding.handler.js';
 
 export function setupSocketAuth(io) {
   // Middleware to authenticate socket connections with JWT
@@ -50,6 +51,9 @@ export function initSocket(io) {
 
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id} (User: ${socket.user?.displayName || socket.userId})`);
+
+    // Register bidding event listeners
+    registerBiddingHandlers(io, socket);
 
     socket.on('disconnect', (reason) => {
       console.log(`Socket disconnected: ${socket.id} (${reason})`);
