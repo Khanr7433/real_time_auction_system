@@ -11,6 +11,7 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import auctionRoutes from './routes/auction.routes.js';
+import initSocket from './socket/index.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,9 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+// Configure Socket.io authentication & event handlers
+initSocket(io);
 
 // Attach io instance to express app for route handlers
 app.set('io', io);
