@@ -87,3 +87,4 @@ if (isDirectRun) {
 }
 
 export { app, server, io, startServer };
+export default app;

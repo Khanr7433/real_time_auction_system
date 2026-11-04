@@ -10,4 +10,5 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+export { requireAdmin, requireAdmin as isAdmin };
 export default requireAdmin;
