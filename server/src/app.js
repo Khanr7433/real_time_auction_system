@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import auctionRoutes from './routes/auction.routes.js';
 import initSocket from './socket/index.js';
+import auctionTimerService from './services/auctionTimer.service.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,9 @@ const io = new Server(server, {
 
 // Configure Socket.io authentication & event handlers
 initSocket(io);
+
+// Initialize Auction Timer Service (server-authoritative countdown & auto-close)
+auctionTimerService.init(io);
 
 // Attach io instance to express app for route handlers
 app.set('io', io);
