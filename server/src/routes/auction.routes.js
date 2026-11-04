@@ -43,3 +43,4 @@ router.put(
 router.delete('/:id', authenticate, deleteAuction);
 
 export default router;
+

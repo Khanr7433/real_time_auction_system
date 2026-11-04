@@ -35,3 +35,4 @@ export interface AuctionsResponse {
   totalPages: number;
   hasMore: boolean;
 }
+

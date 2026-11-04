@@ -88,3 +88,4 @@ auctionSchema.index({ title: 'text', description: 'text' });
 
 export const Auction = mongoose.model('Auction', auctionSchema);
 export default Auction;
+

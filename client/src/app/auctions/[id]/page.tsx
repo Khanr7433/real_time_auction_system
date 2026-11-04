@@ -1,14 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, use, Suspense } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { Auction } from '@/types/auction';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Clock, Shield, User, Tag, ArrowLeft, ArrowUpRight, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, use, Suspense } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { Auction } from "@/types/auction";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import {
+  Clock,
+  Shield,
+  User,
+  Tag,
+  ArrowLeft,
+  ArrowUpRight,
+  AlertCircle,
+} from "lucide-react";
 
 function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -18,7 +26,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const [auction, setAuction] = useState<Auction | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [bidAmount, setBidAmount] = useState<string>('');
+  const [bidAmount, setBidAmount] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +43,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           setTimeRemaining(data.timeRemainingSeconds);
         }
       } catch (err: any) {
-        setError(err.message || 'Auction listing not found');
+        setError(err.message || "Auction listing not found");
       } finally {
         setIsLoading(false);
       }
@@ -56,18 +64,20 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   }, [timeRemaining]);
 
   const formatCountdown = (totalSec: number | null) => {
-    if (totalSec === null) return '--:--:--';
-    if (totalSec <= 0) return 'Auction closed';
+    if (totalSec === null) return "--:--:--";
+    if (totalSec <= 0) return "Auction closed";
     const hours = Math.floor(totalSec / 3600);
     const minutes = Math.floor((totalSec % 3600) / 60);
     const seconds = totalSec % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const getFullImageUrl = (pathUrl: string) => {
-    if (!pathUrl) return '';
-    if (pathUrl.startsWith('http')) return pathUrl;
-    const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    if (!pathUrl) return "";
+    if (pathUrl.startsWith("http")) return pathUrl;
+    const base =
+      process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+      "http://localhost:5000";
     return `${base}${pathUrl}`;
   };
 
@@ -82,7 +92,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   if (error || !auction) {
     return (
       <div className="max-w-4xl mx-auto p-6 sm:p-12 text-center space-y-4">
-        <p className="text-base text-red-500">{error || 'Auction not found'}</p>
+        <p className="text-base text-red-500">{error || "Auction not found"}</p>
         <Link href="/auctions">
           <Button variant="outline" size="sm">
             <ArrowLeft className="size-4 mr-1" /> Back to auctions
@@ -92,9 +102,10 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
-  const isClosed = (timeRemaining ?? 0) <= 0 || auction.status !== 'live';
+  const isClosed = (timeRemaining ?? 0) <= 0 || auction.status !== "live";
   const minRequiredBid = auction.currentBid + 1;
-  const sellerObj = typeof auction.sellerId === 'object' ? auction.sellerId : null;
+  const sellerObj =
+    typeof auction.sellerId === "object" ? auction.sellerId : null;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-6">
@@ -111,7 +122,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Image Gallery (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="aspect-[4/3] w-full rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 relative">
+          <div className="aspect-4/3 w-full rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 relative">
             {selectedImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -134,12 +145,14 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             <span
               className={`absolute top-3 right-3 text-xs font-medium px-3 py-1 rounded-full backdrop-blur-md flex items-center gap-1.5 ${
                 isClosed
-                  ? 'bg-neutral-900/80 text-neutral-400'
-                  : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                  ? "bg-neutral-900/80 text-neutral-400"
+                  : "bg-emerald-950/80 text-emerald-300 border border-emerald-500/30"
               }`}
             >
-              {!isClosed && <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />}
-              {isClosed ? 'Ended' : 'Live Bidding'}
+              {!isClosed && (
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+              {isClosed ? "Ended" : "Live Bidding"}
             </span>
           </div>
 
@@ -154,7 +167,9 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                     type="button"
                     onClick={() => setSelectedImage(img)}
                     className={`size-18 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                      isSelected ? 'border-yellow-800 dark:border-orange-200' : 'border-transparent opacity-60 hover:opacity-100'
+                      isSelected
+                        ? "border-yellow-800 dark:border-orange-200"
+                        : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -171,7 +186,9 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
           {/* Description Section */}
           <div className="pt-6 border-t border-neutral-200 dark:border-neutral-800 space-y-3">
-            <h2 className="font-montserrat font-semibold text-lg text-foreground">About this item</h2>
+            <h2 className="font-montserrat font-semibold text-lg text-foreground">
+              About this item
+            </h2>
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 whitespace-pre-line">
               {auction.description}
             </p>
@@ -205,13 +222,16 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
             {/* Price Box */}
             <div className="p-4 rounded-xl border border-neutral-200/80 dark:border-neutral-800/80 space-y-1">
-              <span className="text-xs text-neutral-500">Current highest bid</span>
+              <span className="text-xs text-neutral-500">
+                Current highest bid
+              </span>
               <div className="flex items-baseline justify-between">
                 <span className="font-montserrat text-3xl font-extrabold text-foreground">
                   ${auction.currentBid.toLocaleString()}
                 </span>
                 <span className="text-xs text-neutral-500">
-                  {auction.bidCount} {auction.bidCount === 1 ? 'bid' : 'bids'} placed
+                  {auction.bidCount} {auction.bidCount === 1 ? "bid" : "bids"}{" "}
+                  placed
                 </span>
               </div>
               <p className="text-[11px] text-neutral-500 pt-1">
@@ -241,7 +261,9 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                   onSubmit={(e) => {
                     e.preventDefault();
                     // Socket bidding integration will be handled in Phase 4
-                    alert(`Bid of $${bidAmount} received (Real-time socket engine ready in Phase 4).`);
+                    alert(
+                      `Bid of $${bidAmount} received (Real-time socket engine ready in Phase 4).`,
+                    );
                   }}
                   className="space-y-3"
                 >
@@ -265,12 +287,18 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                     />
                   </div>
 
-                  <Button type="submit" variant="solid" size="lg" className="w-full">
+                  <Button
+                    type="submit"
+                    variant="solid"
+                    size="lg"
+                    className="w-full"
+                  >
                     Place bid <ArrowUpRight className="size-4" />
                   </Button>
 
                   <p className="text-[11px] text-neutral-500 text-center flex items-center justify-center gap-1">
-                    <AlertCircle className="size-3" /> Anti-sniping active: bids under 30s extend time by 1m
+                    <AlertCircle className="size-3" /> Anti-sniping active: bids
+                    under 30s extend time by 1m
                   </p>
                 </form>
               )}
@@ -286,17 +314,24 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
               <div className="size-10 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-bold text-foreground">
                 {sellerObj?.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={sellerObj.avatar} alt={sellerObj.displayName} className="size-full rounded-full object-cover" />
+                  <img
+                    src={sellerObj.avatar}
+                    alt={sellerObj.displayName}
+                    className="size-full rounded-full object-cover"
+                  />
                 ) : (
-                  sellerObj?.displayName?.[0]?.toUpperCase() || <User className="size-5" />
+                  sellerObj?.displayName?.[0]?.toUpperCase() || (
+                    <User className="size-5" />
+                  )
                 )}
               </div>
               <div>
                 <p className="font-montserrat text-sm font-semibold text-foreground">
-                  {sellerObj?.displayName || 'Verified Seller'}
+                  {sellerObj?.displayName || "Verified Seller"}
                 </p>
                 <p className="text-[11px] text-neutral-500 flex items-center gap-1">
-                  <Shield className="size-3 text-emerald-500" /> Community Member
+                  <Shield className="size-3 text-emerald-500" /> Community
+                  Member
                 </p>
               </div>
             </div>
@@ -307,7 +342,11 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-export default function AuctionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function AuctionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return (
     <Suspense
       fallback={

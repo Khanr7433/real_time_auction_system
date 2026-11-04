@@ -257,3 +257,4 @@ export async function getAuctionById(req, res) {
     return res.status(500).json({ error: error.message || 'Failed to fetch auction details' });
   }
 }
+
