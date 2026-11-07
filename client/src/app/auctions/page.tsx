@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Auction, AuctionsResponse } from "@/types/auction";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import {
   Search,
   SlidersHorizontal,
@@ -133,7 +134,7 @@ export default function AuctionsBrowsePage() {
               className="pl-9"
             />
           </div>
-          <Button type="submit" variant="solid" size="md">
+          <Button type="submit" variant="soft" size="md">
             Search
           </Button>
           <Button
@@ -282,18 +283,13 @@ export default function AuctionsBrowsePage() {
                   </div>
 
                   <div className="absolute top-2 right-2">
-                    <span
-                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-md flex items-center gap-1 ${
-                        hasEnded
-                          ? "bg-neutral-800/80 text-neutral-400"
-                          : "bg-emerald-950/80 text-emerald-300 border border-emerald-500/30"
-                      }`}
+                    <Chip
+                      tone={hasEnded ? "default" : "success"}
+                      dot={!hasEnded}
+                      className="backdrop-blur-md bg-black/40 text-[10px]"
                     >
-                      {!hasEnded && (
-                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      )}
                       {hasEnded ? "Closed" : "Live"}
-                    </span>
+                    </Chip>
                   </div>
                 </div>
 

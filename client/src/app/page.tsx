@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { AnimatedBadge } from '@/components/ui/badge';
 import { Gavel, Zap, ShieldCheck, Clock } from 'lucide-react';
 
 export default function Home() {
@@ -8,10 +9,10 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-4xl w-full text-center py-16 sm:py-24 space-y-6">
         {/* Animated Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900/80 text-xs font-medium text-neutral-800 dark:text-neutral-200">
-          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+        <AnimatedBadge>
+          <span className="size-2 rounded-full bg-emerald-500" />
           MCA Mini-Project Edition
-        </div>
+        </AnimatedBadge>
 
         {/* Headline */}
         <h1 className="font-montserrat text-4xl sm:text-6xl font-semibold tracking-tight leading-tight">
