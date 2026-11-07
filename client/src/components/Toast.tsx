@@ -192,26 +192,26 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       case 'auction_won':
         return {
           icon: <Trophy className="size-5 text-amber-400 shrink-0" />,
-          border: 'border-amber-400/40',
-          bg: 'bg-amber-950/20 dark:bg-amber-950/40',
+          border: 'border-amber-400/30',
+          bg: 'bg-neutral-900/80',
         };
       case 'auction_sold':
         return {
           icon: <Tag className="size-5 text-emerald-400 shrink-0" />,
           border: 'border-emerald-500/30',
-          bg: 'bg-emerald-950/20 dark:bg-emerald-950/40',
+          bg: 'bg-neutral-900/80',
         };
       case 'auction_unsold':
         return {
           icon: <Clock className="size-5 text-neutral-400 shrink-0" />,
-          border: 'border-neutral-500/30',
-          bg: 'bg-neutral-900/50',
+          border: 'border-neutral-700',
+          bg: 'bg-neutral-900/80',
         };
       case 'auction_ending_soon':
         return {
-          icon: <Clock className="size-5 text-orange-400 shrink-0" />,
-          border: 'border-orange-500/30',
-          bg: 'bg-orange-950/20 dark:bg-orange-950/40',
+          icon: <Clock className="size-5 text-amber-400 shrink-0" />,
+          border: 'border-amber-500/30',
+          bg: 'bg-neutral-900/80',
         };
       case 'system_announcement':
         return {
@@ -245,7 +245,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border ${style.border} ${style.bg} backdrop-blur-md shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-3`}
+      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border ${style.border} ${style.bg} backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-3`}
     >
       {style.icon}
       <div className="flex-1 min-w-0 space-y-1">
