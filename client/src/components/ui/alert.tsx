@@ -20,7 +20,7 @@ export function Alert({
     // ChaiUI Rule: Subtle 1px outline with faint fill, zero drop shadows
     info: 'border-neutral-700/80 text-neutral-300 bg-neutral-900/60',
     success: 'border-emerald-500/30 text-emerald-300 bg-emerald-950/20',
-    warning: 'border-amber-500/30 text-amber-300 bg-amber-950/20',
+    warning: 'border-amber-500/40 text-amber-300 bg-neutral-900/60',
     danger: 'border-red-500/30 text-red-300 bg-red-950/20',
   }[tone];
 
