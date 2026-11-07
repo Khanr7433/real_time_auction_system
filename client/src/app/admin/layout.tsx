@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           This area is restricted to system administrators only.
         </p>
         <Link href="/" className="inline-block pt-2">
-          <Button variant="solid" size="sm">
+          <Button variant="soft" size="sm" iconRight={false}>
             <ArrowLeft className="size-4 mr-1" /> Return Home
           </Button>
         </Link>
@@ -65,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30">
+            <span className="p-1.5 rounded-lg border border-neutral-300 dark:border-neutral-800 text-foreground">
               <ShieldAlert className="size-4" />
             </span>
             <h1 className="font-montserrat text-2xl font-bold tracking-tight text-foreground">
@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={item.href}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${
                 isActive
-                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-black shadow-sm'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-black'
                   : 'text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
               }`}
             >

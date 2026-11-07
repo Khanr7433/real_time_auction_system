@@ -6,6 +6,8 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
 import {
   Users,
   Gavel,
@@ -184,11 +186,11 @@ export default function AdminOverviewPage() {
         <div className="card-chai p-5 space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between text-neutral-500">
             <span className="text-xs font-medium">Live Auctions</span>
-            <span className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+            <span className="p-2 rounded-lg border border-neutral-800 text-foreground">
               <Activity className="size-4" />
             </span>
           </div>
-          <div className="text-2xl font-bold font-montserrat text-amber-400">
+          <div className="text-2xl font-bold font-montserrat text-foreground">
             {data?.auctions.live || 0}
           </div>
           <p className="text-[11px] text-neutral-400">
@@ -334,7 +336,7 @@ export default function AdminOverviewPage() {
       {/* Broadcast Announcement Form */}
       <div className="card-chai p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+          <span className="p-1.5 rounded-lg border border-neutral-850 text-foreground">
             <Megaphone className="size-4" />
           </span>
           <div>
@@ -348,20 +350,9 @@ export default function AdminOverviewPage() {
         </div>
 
         {broadcastStatus && (
-          <div
-            className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
-              broadcastStatus.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border border-red-500/20'
-            }`}
-          >
-            {broadcastStatus.type === 'success' ? (
-              <CheckCircle2 className="size-4 shrink-0" />
-            ) : (
-              <XCircle className="size-4 shrink-0" />
-            )}
-            <span>{broadcastStatus.message}</span>
-          </div>
+          <Alert tone={broadcastStatus.type === 'success' ? 'success' : 'danger'}>
+            {broadcastStatus.message}
+          </Alert>
         )}
 
         <form onSubmit={handleBroadcastAnnouncement} className="space-y-3">
@@ -382,13 +373,13 @@ export default function AdminOverviewPage() {
             <label className="block text-xs font-medium text-neutral-400 mb-1">
               Message <span className="text-red-400">*</span>
             </label>
-            <textarea
+            <Textarea
               value={announcementMessage}
               onChange={(e) => setAnnouncementMessage(e.target.value)}
               placeholder="Enter announcement text to broadcast to all users..."
               required
               rows={3}
-              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground resize-none"
+              className="resize-none"
               maxLength={500}
             />
           </div>
