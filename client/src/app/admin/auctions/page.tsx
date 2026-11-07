@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Gavel,
   Search,
@@ -226,34 +230,33 @@ export default function AdminAuctionsPage() {
     switch (status) {
       case 'live':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <Chip tone="success" dot>
             Live
-          </span>
+          </Chip>
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/30">
+          <Chip tone="default">
             Completed
-          </span>
+          </Chip>
         );
       case 'unsold':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700">
+          <Chip tone="default">
             Unsold
-          </span>
+          </Chip>
         );
       case 'admin-terminated':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/30">
+          <Chip tone="danger">
             Terminated
-          </span>
+          </Chip>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400">
+          <Chip tone="default">
             {status}
-          </span>
+          </Chip>
         );
     }
   };
@@ -285,28 +288,12 @@ export default function AdminAuctionsPage() {
 
       {/* Notification Banner */}
       {notification && (
-        <div
-          className={`p-3 rounded-lg text-xs flex items-center justify-between gap-2 ${
-            notification.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}
+        <Alert
+          tone={notification.type === 'success' ? 'success' : 'danger'}
+          onClose={() => setNotification(null)}
         >
-          <div className="flex items-center gap-2">
-            {notification.type === 'success' ? (
-              <CheckCircle2 className="size-4 shrink-0" />
-            ) : (
-              <AlertTriangle className="size-4 shrink-0" />
-            )}
-            <span>{notification.message}</span>
-          </div>
-          <button
-            onClick={() => setNotification(null)}
-            className="text-neutral-400 hover:text-foreground text-xs"
-          >
-            ✕
-          </button>
-        </div>
+          {notification.message}
+        </Alert>
       )}
 
       {/* Filter and Search Bar */}
@@ -321,7 +308,7 @@ export default function AdminAuctionsPage() {
               className="pl-9 text-xs"
             />
           </div>
-          <Button type="submit" variant="solid" size="sm" className="text-xs shrink-0">
+          <Button type="submit" variant="soft" size="sm" className="text-xs shrink-0">
             Search
           </Button>
         </form>
@@ -389,163 +376,157 @@ export default function AdminAuctionsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-900/60 text-neutral-400 font-medium">
-                  <th className="p-3.5 pl-4">Item</th>
-                  <th className="p-3.5">Seller</th>
-                  <th className="p-3.5">Current Bid</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Flags</th>
-                  <th className="p-3.5 pr-4 text-right">Moderation Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-800/70">
-                {auctions.map((item) => {
-                  const isActionLoading = actionId === item._id;
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Item</TableHead>
+                <TableHead>Seller</TableHead>
+                <TableHead>Current Bid</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Flags</TableHead>
+                <TableHead className="pr-4 text-right">Moderation Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {auctions.map((item) => {
+                const isActionLoading = actionId === item._id;
 
-                  return (
-                    <tr
-                      key={item._id}
-                      className="hover:bg-neutral-900/30 transition-colors"
-                    >
-                      {/* Item Title & Thumbnail */}
-                      <td className="p-3.5 pl-4 max-w-xs">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-lg bg-neutral-800 overflow-hidden border border-neutral-800 shrink-0">
-                            {item.images && item.images.length > 0 ? (
-                              <img
-                                src={item.images[0]}
-                                alt={item.title}
-                                className="size-full object-cover"
-                              />
-                            ) : (
-                              <div className="size-full flex items-center justify-center text-neutral-600">
-                                <Gavel className="size-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/auctions/${item._id}`}
-                              target="_blank"
-                              className="font-semibold text-foreground hover:text-amber-400 flex items-center gap-1 group truncate"
-                            >
-                              <span className="truncate">{item.title}</span>
-                              <ExternalLink className="size-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </Link>
-                            <p className="text-[10px] text-neutral-500 font-mono">
-                              ID: {item._id.slice(-6)} • {item.bidCount || 0} bids
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Seller Info */}
-                      <td className="p-3.5">
-                        <p className="text-foreground font-medium text-[11px]">
-                          {item.sellerId?.displayName || 'Unknown'}
-                        </p>
-                        <p className="text-[10px] text-neutral-500 font-mono truncate max-w-[120px]">
-                          {item.sellerId?.email || '—'}
-                        </p>
-                      </td>
-
-                      {/* Price */}
-                      <td className="p-3.5 font-mono">
-                        <span className="text-foreground font-bold">
-                          ${(item.currentBid || item.startingBid || 0).toLocaleString()}
-                        </span>
-                        <span className="block text-[10px] text-neutral-500">
-                          Start: ${(item.startingBid || 0).toLocaleString()}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3.5">{getStatusBadge(item.status)}</td>
-
-                      {/* Flag state */}
-                      <td className="p-3.5">
-                        {item.isFlagged ? (
-                          <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded">
-                              <Flag className="size-2.5 fill-red-400" />
-                              Flagged
-                            </span>
-                            {item.flagReason && (
-                              <p className="text-[10px] text-neutral-400 line-clamp-1 max-w-[140px]" title={item.flagReason}>
-                                {item.flagReason}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-neutral-600">—</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="p-3.5 pr-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Flag / Unflag Button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isActionLoading}
-                            onClick={() => {
-                              setFlagDialogAuction(item);
-                              setFlagReason(item.flagReason || '');
-                            }}
-                            className={`text-[11px] h-7 px-2 ${
-                              item.isFlagged
-                                ? 'text-amber-400 border-amber-500/30 hover:border-amber-500/50'
-                                : 'text-neutral-400 hover:text-foreground'
-                            }`}
-                            title={item.isFlagged ? 'Review / Unflag' : 'Flag Listing'}
-                          >
-                            <Flag className={`size-3 ${item.isFlagged ? 'fill-amber-400' : ''}`} />
-                          </Button>
-
-                          {/* Terminate Button (Only for live auctions) */}
-                          {item.status === 'live' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isActionLoading}
-                              onClick={() => {
-                                setTerminateDialogAuction(item);
-                                setTerminateReason('');
-                              }}
-                              className="text-[11px] h-7 px-2 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
-                              title="Force-terminate auction"
-                            >
-                              <StopCircle className="size-3 mr-1" />
-                              End
-                            </Button>
+                return (
+                  <TableRow key={item._id}>
+                    {/* Item Title & Thumbnail */}
+                    <TableCell className="pl-4 max-w-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-neutral-800 overflow-hidden border border-neutral-800 shrink-0">
+                          {item.images && item.images.length > 0 ? (
+                            <img
+                              src={item.images[0]}
+                              alt={item.title}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <div className="size-full flex items-center justify-center text-neutral-600">
+                              <Gavel className="size-4" />
+                            </div>
                           )}
+                        </div>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/auctions/${item._id}`}
+                            target="_blank"
+                            className="font-semibold text-foreground hover:text-amber-400 flex items-center gap-1 group truncate"
+                          >
+                            <span className="truncate">{item.title}</span>
+                            <ExternalLink className="size-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </Link>
+                          <p className="text-[10px] text-neutral-500 font-mono">
+                            ID: {item._id.slice(-6)} • {item.bidCount || 0} bids
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
 
-                          {/* Delete Button */}
+                    {/* Seller Info */}
+                    <TableCell>
+                      <p className="text-foreground font-medium text-[11px]">
+                        {item.sellerId?.displayName || 'Unknown'}
+                      </p>
+                      <p className="text-[10px] text-neutral-500 font-mono truncate max-w-[120px]">
+                        {item.sellerId?.email || 'N/A'}
+                      </p>
+                    </TableCell>
+
+                    {/* Price */}
+                    <TableCell className="font-mono">
+                      <span className="text-foreground font-bold">
+                        ${(item.currentBid || item.startingBid || 0).toLocaleString()}
+                      </span>
+                      <span className="block text-[10px] text-neutral-500">
+                        Start: ${(item.startingBid || 0).toLocaleString()}
+                      </span>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+
+                    {/* Flag state */}
+                    <TableCell>
+                      {item.isFlagged ? (
+                        <div className="space-y-0.5">
+                          <Chip tone="danger" icon={<Flag className="size-2.5 fill-red-400" />}>
+                            Flagged
+                          </Chip>
+                          {item.flagReason && (
+                            <p className="text-[10px] text-neutral-400 line-clamp-1 max-w-[140px]" title={item.flagReason}>
+                              {item.flagReason}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-neutral-600">None</span>
+                      )}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="pr-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Flag / Unflag Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionLoading}
+                          onClick={() => {
+                            setFlagDialogAuction(item);
+                            setFlagReason(item.flagReason || '');
+                          }}
+                          className={`text-[11px] h-7 px-2 ${
+                            item.isFlagged
+                              ? 'text-amber-400 border-amber-500/30 hover:border-amber-500/50'
+                              : 'text-neutral-400 hover:text-foreground'
+                          }`}
+                          title={item.isFlagged ? 'Review / Unflag' : 'Flag Listing'}
+                        >
+                          <Flag className={`size-3 ${item.isFlagged ? 'fill-amber-400' : ''}`} />
+                        </Button>
+
+                        {/* Terminate Button (Only for live auctions) */}
+                        {item.status === 'live' && (
                           <Button
                             variant="outline"
                             size="sm"
                             disabled={isActionLoading}
                             onClick={() => {
-                              setDeleteDialogAuction(item);
-                              setDeleteReason('');
+                              setTerminateDialogAuction(item);
+                              setTerminateReason('');
                             }}
-                            className="text-[11px] h-7 px-2 text-neutral-500 hover:text-red-400 border-neutral-800 hover:border-red-500/30"
-                            title="Delete listing completely"
+                            className="text-[11px] h-7 px-2 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
+                            title="Force-terminate auction"
                           >
-                            <Trash2 className="size-3" />
+                            <StopCircle className="size-3 mr-1" />
+                            End
                           </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        )}
+
+                        {/* Delete Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionLoading}
+                          onClick={() => {
+                            setDeleteDialogAuction(item);
+                            setDeleteReason('');
+                          }}
+                          className="text-[11px] h-7 px-2 text-neutral-500 hover:text-red-400 border-neutral-800 hover:border-red-500/30"
+                          title="Delete listing completely"
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
 
         {/* Pagination Footer */}
@@ -580,175 +561,171 @@ export default function AdminAuctionsPage() {
 
       {/* Force Terminate Modal Dialog */}
       {terminateDialogAuction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="card-chai max-w-md w-full p-6 space-y-4 border-red-500/30 bg-neutral-950">
+        <Dialog open={!!terminateDialogAuction} onClose={() => setTerminateDialogAuction(null)}>
+          <DialogHeader>
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/30">
+              <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
                 <StopCircle className="size-5" />
               </span>
               <div>
-                <h3 className="font-montserrat text-sm font-bold text-foreground">
-                  Force-Terminate Auction
-                </h3>
-                <p className="text-xs text-neutral-400">
+                <DialogTitle>Force-Terminate Auction</DialogTitle>
+                <DialogDescription>
                   Instantly close active bidding for &quot;{terminateDialogAuction.title}&quot;
-                </p>
+                </DialogDescription>
               </div>
             </div>
+          </DialogHeader>
 
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              This action terminates the auction immediately. Connected clients in the auction room will receive the <code className="text-red-400">auction_ended</code> socket event and the seller will be notified.
-            </p>
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            This action terminates the auction immediately. Connected clients in the auction room will receive the <code className="text-red-400">auction_ended</code> socket event and the seller will be notified.
+          </p>
 
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                Termination Reason
-              </label>
-              <Input
-                value={terminateReason}
-                onChange={(e) => setTerminateReason(e.target.value)}
-                placeholder="e.g. Terms of Service violation, duplicate listing..."
-                className="text-xs"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTerminateDialogAuction(null)}
-                className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="solid"
-                size="sm"
-                onClick={handleTerminateConfirm}
-                disabled={actionId === terminateDialogAuction._id}
-                className="text-xs bg-red-600 hover:bg-red-500 text-white"
-              >
-                {actionId === terminateDialogAuction._id ? 'Terminating...' : 'Confirm Termination'}
-              </Button>
-            </div>
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-neutral-400 mb-1">
+              Termination Reason
+            </label>
+            <Input
+              value={terminateReason}
+              onChange={(e) => setTerminateReason(e.target.value)}
+              placeholder="e.g. Terms of Service violation, duplicate listing..."
+              className="text-xs"
+            />
           </div>
-        </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTerminateDialogAuction(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleTerminateConfirm}
+              disabled={actionId === terminateDialogAuction._id}
+              className="text-xs"
+            >
+              {actionId === terminateDialogAuction._id ? 'Terminating...' : 'Confirm Termination'}
+            </Button>
+          </DialogFooter>
+        </Dialog>
       )}
 
       {/* Flag / Unflag Modal Dialog */}
       {flagDialogAuction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="card-chai max-w-md w-full p-6 space-y-4 bg-neutral-950">
+        <Dialog open={!!flagDialogAuction} onClose={() => setFlagDialogAuction(null)}>
+          <DialogHeader>
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30">
+              <span className="p-2 rounded-xl border border-neutral-700 text-foreground bg-neutral-800">
                 <Flag className="size-5" />
               </span>
               <div>
-                <h3 className="font-montserrat text-sm font-bold text-foreground">
+                <DialogTitle>
                   {flagDialogAuction.isFlagged ? 'Review / Remove Flag' : 'Flag Listing for Review'}
-                </h3>
-                <p className="text-xs text-neutral-400">
+                </DialogTitle>
+                <DialogDescription>
                   {flagDialogAuction.title}
-                </p>
+                </DialogDescription>
               </div>
             </div>
+          </DialogHeader>
 
-            {!flagDialogAuction.isFlagged ? (
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">
-                  Reason for Flagging
-                </label>
-                <Input
-                  value={flagReason}
-                  onChange={(e) => setFlagReason(e.target.value)}
-                  placeholder="e.g. Suspicious bids, counterfeit risk, prohibited item..."
-                  className="text-xs"
-                />
-              </div>
-            ) : (
-              <p className="text-xs text-neutral-300">
-                This listing is currently flagged. Clicking confirm will clear the flag status.
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFlagDialogAuction(null)}
+          {!flagDialogAuction.isFlagged ? (
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-neutral-400 mb-1">
+                Reason for Flagging
+              </label>
+              <Input
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                placeholder="e.g. Suspicious bids, counterfeit risk, prohibited item..."
                 className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="solid"
-                size="sm"
-                onClick={handleFlagSubmit}
-                disabled={actionId === flagDialogAuction._id}
-                className="text-xs"
-              >
-                {flagDialogAuction.isFlagged ? 'Remove Flag' : 'Flag Listing'}
-              </Button>
+              />
             </div>
-          </div>
-        </div>
+          ) : (
+            <p className="text-xs text-neutral-300 mt-2">
+              This listing is currently flagged. Clicking confirm will clear the flag status.
+            </p>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFlagDialogAuction(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              size="sm"
+              onClick={handleFlagSubmit}
+              disabled={actionId === flagDialogAuction._id}
+              className="text-xs"
+            >
+              {flagDialogAuction.isFlagged ? 'Remove Flag' : 'Flag Listing'}
+            </Button>
+          </DialogFooter>
+        </Dialog>
       )}
 
       {/* Delete Auction Modal Dialog */}
       {deleteDialogAuction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="card-chai max-w-md w-full p-6 space-y-4 border-red-500/30 bg-neutral-950">
+        <Dialog open={!!deleteDialogAuction} onClose={() => setDeleteDialogAuction(null)}>
+          <DialogHeader>
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/30">
+              <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
                 <Trash2 className="size-5" />
               </span>
               <div>
-                <h3 className="font-montserrat text-sm font-bold text-foreground">
-                  Delete Auction Listing
-                </h3>
-                <p className="text-xs text-neutral-400">
+                <DialogTitle>Delete Auction Listing</DialogTitle>
+                <DialogDescription>
                   Permanently remove &quot;{deleteDialogAuction.title}&quot;
-                </p>
+                </DialogDescription>
               </div>
             </div>
+          </DialogHeader>
 
-            <p className="text-xs text-red-400/90 leading-relaxed">
-              Warning: This permanently removes the listing from the database and notifies the seller. This action cannot be undone.
-            </p>
+          <p className="text-xs text-red-400/90 leading-relaxed">
+            Warning: This permanently removes the listing from the database and notifies the seller. This action cannot be undone.
+          </p>
 
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                Removal Reason
-              </label>
-              <Input
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-                placeholder="e.g. Fraudulent listing, prohibited goods..."
-                className="text-xs"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDeleteDialogAuction(null)}
-                className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="solid"
-                size="sm"
-                onClick={handleDeleteConfirm}
-                disabled={actionId === deleteDialogAuction._id}
-                className="text-xs bg-red-600 hover:bg-red-500 text-white"
-              >
-                {actionId === deleteDialogAuction._id ? 'Deleting...' : 'Delete Listing'}
-              </Button>
-            </div>
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-neutral-400 mb-1">
+              Removal Reason
+            </label>
+            <Input
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="e.g. Fraudulent listing, prohibited goods..."
+              className="text-xs"
+            />
           </div>
-        </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteDialogAuction(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteConfirm}
+              disabled={actionId === deleteDialogAuction._id}
+              className="text-xs"
+            >
+              {actionId === deleteDialogAuction._id ? 'Deleting...' : 'Delete Listing'}
+            </Button>
+          </DialogFooter>
+        </Dialog>
       )}
     </div>
   );
