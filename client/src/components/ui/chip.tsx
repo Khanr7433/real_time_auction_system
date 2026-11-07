@@ -4,12 +4,14 @@ import { cn } from '@/lib/utils';
 export interface ChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   tone?: 'default' | 'success' | 'danger' | 'warning' | 'special';
   dot?: boolean;
+  icon?: React.ReactNode;
 }
 
 export function Chip({
   className,
   tone = 'default',
   dot = false,
+  icon,
   children,
   ...props
 }: ChipProps) {
@@ -40,6 +42,7 @@ export function Chip({
       {...props}
     >
       {dot && <span className={cn('size-1.5 rounded-full shrink-0', dotClasses)} aria-hidden />}
+      {icon && <span className="inline-flex shrink-0">{icon}</span>}
       {children}
     </span>
   );

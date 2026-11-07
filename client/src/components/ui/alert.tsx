@@ -6,6 +6,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   tone?: 'info' | 'success' | 'warning' | 'danger';
   title?: string;
   onDismiss?: () => void;
+  onClose?: () => void;
 }
 
 export function Alert({
@@ -13,9 +14,11 @@ export function Alert({
   tone = 'info',
   title,
   onDismiss,
+  onClose,
   children,
   ...props
 }: AlertProps) {
+  const handleClose = onDismiss || onClose;
   const toneClasses = {
     // ChaiUI Rule: Subtle 1px outline with faint fill, zero drop shadows
     info: 'border-neutral-700/80 text-neutral-300 bg-neutral-900/60',
@@ -46,10 +49,10 @@ export function Alert({
         {title && <h5 className="font-semibold tracking-tight text-foreground">{title}</h5>}
         <div className="text-[11px] opacity-90">{children}</div>
       </div>
-      {onDismiss && (
+      {handleClose && (
         <button
           type="button"
-          onClick={onDismiss}
+          onClick={handleClose}
           aria-label="Dismiss alert"
           className="text-neutral-400 hover:text-foreground text-xs shrink-0 cursor-pointer"
         >
