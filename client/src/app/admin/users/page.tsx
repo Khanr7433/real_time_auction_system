@@ -6,6 +6,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Users,
   Search,
@@ -53,6 +57,7 @@ export default function AdminUsersPage() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
+  const [confirmSuspendUser, setConfirmSuspendUser] = useState<{ id: string; displayName: string } | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -93,10 +98,9 @@ export default function AdminUsersPage() {
     fetchUsers(1, search, statusFilter, roleFilter);
   };
 
-  const handleSuspend = async (userId: string, displayName: string) => {
-    if (!window.confirm(`Are you sure you want to suspend "${displayName}"? Their active sessions and socket connections will be immediately terminated.`)) {
-      return;
-    }
+  const executeSuspend = async () => {
+    if (!confirmSuspendUser) return;
+    const { id: userId, displayName } = confirmSuspendUser;
 
     setActionUserId(userId);
     setNotification(null);
@@ -110,6 +114,7 @@ export default function AdminUsersPage() {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, isSuspended: true } : u))
       );
+      setConfirmSuspendUser(null);
     } catch (err: any) {
       setNotification({
         type: 'error',
@@ -170,28 +175,12 @@ export default function AdminUsersPage() {
 
       {/* Notification Banner */}
       {notification && (
-        <div
-          className={`p-3 rounded-lg text-xs flex items-center justify-between gap-2 ${
-            notification.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}
+        <Alert
+          tone={notification.type === 'success' ? 'success' : 'danger'}
+          onClose={() => setNotification(null)}
         >
-          <div className="flex items-center gap-2">
-            {notification.type === 'success' ? (
-              <CheckCircle2 className="size-4 shrink-0" />
-            ) : (
-              <AlertTriangle className="size-4 shrink-0" />
-            )}
-            <span>{notification.message}</span>
-          </div>
-          <button
-            onClick={() => setNotification(null)}
-            className="text-neutral-400 hover:text-foreground text-xs"
-          >
-            ✕
-          </button>
-        </div>
+          {notification.message}
+        </Alert>
       )}
 
       {/* Filter and Search Bar */}
@@ -206,7 +195,7 @@ export default function AdminUsersPage() {
               className="pl-9 text-xs"
             />
           </div>
-          <Button type="submit" variant="solid" size="sm" className="text-xs shrink-0">
+          <Button type="submit" variant="soft" size="sm" className="text-xs shrink-0">
             Search
           </Button>
         </form>
@@ -277,137 +266,124 @@ export default function AdminUsersPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-900/60 text-neutral-400 font-medium">
-                  <th className="p-3.5 pl-4">User</th>
-                  <th className="p-3.5">Email</th>
-                  <th className="p-3.5">Role</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Joined</th>
-                  <th className="p-3.5 pr-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-800/70">
-                {users.map((item) => {
-                  const isCurrentAdmin = item._id === currentAdmin?.id;
-                  const isActionLoading = actionUserId === item._id;
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="pr-4 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((item) => {
+                const isCurrentAdmin = item._id === currentAdmin?.id;
+                const isActionLoading = actionUserId === item._id;
 
-                  return (
-                    <tr
-                      key={item._id}
-                      className="hover:bg-neutral-900/30 transition-colors"
-                    >
-                      {/* Name & Avatar */}
-                      <td className="p-3.5 pl-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-[11px] text-foreground border border-neutral-700/80 shrink-0">
-                            {item.avatar ? (
-                              <img
-                                src={item.avatar}
-                                alt={item.displayName}
-                                className="size-full rounded-full object-cover"
-                              />
-                            ) : (
-                              (item.displayName || 'U')[0].toUpperCase()
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground flex items-center gap-1.5">
-                              {item.displayName}
-                              {isCurrentAdmin && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                  You
-                                </span>
-                              )}
-                            </p>
-                            <span className="text-[10px] text-neutral-500 font-mono">
-                              ID: {item._id.slice(-6)}
-                            </span>
-                          </div>
+                return (
+                  <TableRow key={item._id}>
+                    {/* Name & Avatar */}
+                    <TableCell className="pl-4">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-[11px] text-foreground border border-neutral-700/80 shrink-0">
+                          {item.avatar ? (
+                            <img
+                              src={item.avatar}
+                              alt={item.displayName}
+                              className="size-full rounded-full object-cover"
+                            />
+                          ) : (
+                            (item.displayName || 'U')[0].toUpperCase()
+                          )}
                         </div>
-                      </td>
+                        <div>
+                          <p className="font-semibold text-foreground flex items-center gap-1.5">
+                            {item.displayName}
+                            {isCurrentAdmin && (
+                              <Chip tone="special">
+                                You
+                              </Chip>
+                            )}
+                          </p>
+                          <span className="text-[10px] text-neutral-500 font-mono">
+                            ID: {item._id.slice(-6)}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
 
-                      {/* Email */}
-                      <td className="p-3.5 text-neutral-300 font-mono text-[11px]">
-                        {item.email}
-                      </td>
+                    {/* Email */}
+                    <TableCell className="text-neutral-300 font-mono text-[11px]">
+                      {item.email}
+                    </TableCell>
 
-                      {/* Role */}
-                      <td className="p-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${
-                            item.role === 'admin'
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                              : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
-                          }`}
+                    {/* Role */}
+                    <TableCell>
+                      <Chip
+                        tone={item.role === 'admin' ? 'special' : 'default'}
+                        icon={item.role === 'admin' ? <ShieldCheck className="size-3" /> : undefined}
+                      >
+                        {item.role}
+                      </Chip>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>
+                      {item.isSuspended ? (
+                        <Chip tone="danger" icon={<UserX className="size-3" />}>
+                          Suspended
+                        </Chip>
+                      ) : (
+                        <Chip tone="success" icon={<UserCheck className="size-3" />}>
+                          Active
+                        </Chip>
+                      )}
+                    </TableCell>
+
+                    {/* Joined Date */}
+                    <TableCell className="text-neutral-400 text-[11px]">
+                      {new Date(item.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="pr-4 text-right">
+                      {isCurrentAdmin ? (
+                        <span className="text-[11px] text-neutral-600 italic">No action</span>
+                      ) : item.isSuspended ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionLoading}
+                          onClick={() => handleReactivate(item._id, item.displayName)}
+                          className="text-[11px] h-7 px-2.5 text-emerald-400 hover:text-emerald-300 border-emerald-500/30 hover:border-emerald-500/50"
                         >
-                          {item.role === 'admin' ? (
-                            <ShieldCheck className="size-3" />
-                          ) : null}
-                          {item.role}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3.5">
-                        {item.isSuspended ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/30">
-                            <UserX className="size-3" />
-                            Suspended
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            <UserCheck className="size-3" />
-                            Active
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Joined Date */}
-                      <td className="p-3.5 text-neutral-400 text-[11px]">
-                        {new Date(item.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="p-3.5 pr-4 text-right">
-                        {isCurrentAdmin ? (
-                          <span className="text-[11px] text-neutral-600 italic">No action</span>
-                        ) : item.isSuspended ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isActionLoading}
-                            onClick={() => handleReactivate(item._id, item.displayName)}
-                            className="text-[11px] h-7 px-2.5 text-emerald-400 hover:text-emerald-300 border-emerald-500/30 hover:border-emerald-500/50"
-                          >
-                            <UserCheck className="size-3 mr-1" />
-                            {isActionLoading ? 'Saving...' : 'Reactivate'}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isActionLoading}
-                            onClick={() => handleSuspend(item._id, item.displayName)}
-                            className="text-[11px] h-7 px-2.5 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
-                          >
-                            <UserX className="size-3 mr-1" />
-                            {isActionLoading ? 'Saving...' : 'Suspend'}
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          <UserCheck className="size-3 mr-1" />
+                          {isActionLoading ? 'Saving...' : 'Reactivate'}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isActionLoading}
+                          onClick={() => setConfirmSuspendUser({ id: item._id, displayName: item.displayName })}
+                          className="text-[11px] h-7 px-2.5 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
+                        >
+                          <UserX className="size-3 mr-1" />
+                          {isActionLoading ? 'Saving...' : 'Suspend'}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
 
         {/* Pagination Footer */}
@@ -439,6 +415,17 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmSuspendUser}
+        title="Suspend user account"
+        description={`Are you sure you want to suspend "${confirmSuspendUser?.displayName}"? Their active sessions and socket connections will be immediately terminated.`}
+        confirmLabel="Suspend User"
+        tone="danger"
+        busy={actionUserId === confirmSuspendUser?.id}
+        onConfirm={executeSuspend}
+        onCancel={() => setConfirmSuspendUser(null)}
+      />
     </div>
   );
 }
