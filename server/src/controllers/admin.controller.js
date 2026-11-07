@@ -387,6 +387,96 @@ export async function terminateAuction(req, res) {
   }
 }
 
+// GET /api/admin/disputes - List disputes with status filter and pagination
+export async function getAdminDisputes(req, res) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.status && req.query.status !== 'all') {
+      filter.status = req.query.status;
+    }
+
+    const [disputes, total] = await Promise.all([
+      Dispute.find(filter)
+        .populate('reporterId', 'displayName email avatar')
+        .populate('reportedUserId', 'displayName email avatar')
+        .populate('auctionId', 'title currentBid status sellerId')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Dispute.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      disputes,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch disputes' });
+  }
+}
+
+// PATCH /api/admin/disputes/:id/resolve - Mark dispute resolved with note and notify parties
+export async function resolveDispute(req, res) {
+  try {
+    const { id } = req.params;
+    const { resolutionNote, status = 'resolved' } = req.body;
+
+    const dispute = await Dispute.findById(id).populate('auctionId', 'title');
+    if (!dispute) {
+      return res.status(404).json({ error: 'Dispute not found' });
+    }
+
+    dispute.status = status;
+    dispute.resolutionNote = resolutionNote?.trim() || 'Resolved by administrator';
+    dispute.resolvedAt = new Date();
+    await dispute.save();
+
+    const note = dispute.resolutionNote;
+    const auctionTitle = dispute.auctionId?.title || 'the referenced listing';
+
+    // 1. Notify reporter
+    if (dispute.reporterId) {
+      notificationService
+        .sendNotification({
+          userId: dispute.reporterId,
+          type: 'system',
+          title: 'Dispute Resolved',
+          message: `Your dispute regarding "${auctionTitle}" has been resolved. Note: "${note}"`,
+          data: { disputeId: id, resolutionNote: note },
+        })
+        .catch((err) => console.error('Failed to notify reporter:', err.message));
+    }
+
+    // 2. Notify reported user if applicable
+    if (dispute.reportedUserId) {
+      notificationService
+        .sendNotification({
+          userId: dispute.reportedUserId,
+          type: 'system',
+          title: 'Dispute Resolved',
+          message: `The dispute involving "${auctionTitle}" has been closed with resolution: "${note}"`,
+          data: { disputeId: id, resolutionNote: note },
+        })
+        .catch((err) => console.error('Failed to notify reported user:', err.message));
+    }
+
+    return res.status(200).json({
+      message: 'Dispute updated and parties notified successfully',
+      dispute,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to resolve dispute' });
+  }
+}
+
 // POST /api/admin/announcements - Broadcast a system announcement
 export async function createAnnouncement(req, res) {
   try {
@@ -423,6 +513,8 @@ export default {
   deleteAdminAuction,
   flagAuction,
   terminateAuction,
+  getAdminDisputes,
+  resolveDispute,
   createAnnouncement,
 };
 
