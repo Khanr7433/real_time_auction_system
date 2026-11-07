@@ -2,6 +2,9 @@ import { Auction } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
 import notificationService from '../services/notification.service.js';
 
+// In-memory rate limiting map: userId -> lastBidTimestamp (500ms cooldown)
+const userLastBidMap = new Map();
+
 export function registerBiddingHandlers(io, socket) {
   // Join specific auction room
   socket.on('join_auction', async (data) => {
@@ -58,6 +61,13 @@ export function registerBiddingHandlers(io, socket) {
   // Place a bid with atomic OCC validation and anti-sniping extension
   socket.on('place_bid', async (data) => {
     try {
+      // 1. Guard against unauthenticated guest sockets
+      if (!socket.userId || !socket.user) {
+        return socket.emit('bid_rejected', {
+          reason: 'Authentication required. Please sign in to place live bids.',
+        });
+      }
+
       const { auctionId, amount } = data || {};
       const numericAmount = Number(amount);
 
@@ -68,6 +78,15 @@ export function registerBiddingHandlers(io, socket) {
       }
 
       const now = new Date();
+
+      // 2. Throttle consecutive bids from the same user (500ms debounce)
+      const lastBidTime = userLastBidMap.get(socket.userId) || 0;
+      if (now.getTime() - lastBidTime < 500) {
+        return socket.emit('bid_rejected', {
+          reason: 'Please wait a moment before submitting another bid.',
+        });
+      }
+      userLastBidMap.set(socket.userId, now.getTime());
 
       // Read current state of auction
       const currentAuction = await Auction.findById(auctionId);

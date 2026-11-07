@@ -20,23 +20,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    // If not authenticated or no token, clean up existing socket
-    if (!token || !isAuthenticated) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-      }
-      return;
-    }
-
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL ||
       process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') ||
       'http://localhost:5000';
 
+    const authPayload = token && isAuthenticated ? { token } : {};
+
     const newSocket = io(socketUrl, {
-      auth: { token },
+      auth: authPayload,
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
@@ -45,7 +37,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on('connect', () => {
-      console.log('Socket.io connected:', newSocket.id);
+      console.log('Socket.io connected:', newSocket.id, isAuthenticated ? '(Authenticated)' : '(Guest Spectator)');
       setIsConnected(true);
     });
 

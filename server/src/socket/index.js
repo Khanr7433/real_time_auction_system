@@ -12,7 +12,11 @@ export function setupSocketAuth(io) {
           socket.handshake.headers.authorization.split(' ')[1]);
 
       if (!token) {
-        return next(new Error('Authentication error: Token required'));
+        // Allow unauthenticated guest connection as a spectator
+        socket.user = null;
+        socket.userId = null;
+        socket.isGuest = true;
+        return next();
       }
 
       if (isTokenInvalidated(token)) {
@@ -50,7 +54,9 @@ export function initSocket(io) {
   setupSocketAuth(io);
 
   io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id} (User: ${socket.user?.displayName || socket.userId})`);
+    console.log(
+      `Socket connected: ${socket.id} (${socket.user?.displayName || (socket.userId ? `User: ${socket.userId}` : 'Guest Spectator')})`
+    );
 
     // Join user's personal room for direct notification delivery
     if (socket.userId) {
