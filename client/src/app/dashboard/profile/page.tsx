@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { User, Mail, Shield, Calendar, Phone, Image as ImageIcon } from 'lucide-react';
 
@@ -113,7 +115,9 @@ export default function ProfilePage() {
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" /> Role
               </span>
-              <span className="capitalize font-medium text-foreground">{user.role}</span>
+              <Chip tone="special" className="capitalize">
+                {user.role}
+              </Chip>
             </div>
             <div className="flex items-center justify-between text-neutral-500">
               <span className="flex items-center gap-1.5">
@@ -132,13 +136,13 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 text-xs rounded-md bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
-                {error}
+              <div className="mb-4">
+                <Alert tone="danger">{error}</Alert>
               </div>
             )}
             {message && (
-              <div className="mb-4 p-3 text-xs rounded-md bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
-                {message}
+              <div className="mb-4">
+                <Alert tone="success">{message}</Alert>
               </div>
             )}
 

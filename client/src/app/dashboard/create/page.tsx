@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Upload, AlertCircle } from 'lucide-react';
 
@@ -144,9 +146,8 @@ export default function CreateAuctionPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-6 p-3 text-xs rounded-md bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{error}</span>
+            <div className="mb-6">
+              <Alert tone="danger">{error}</Alert>
             </div>
           )}
 
@@ -208,14 +209,13 @@ export default function CreateAuctionPage() {
               <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                 Detailed description
               </label>
-              <textarea
+              <Textarea
                 rows={4}
                 placeholder="Provide accurate details about condition, authenticity, specifications, and included accessories..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={2000}
                 required
-                className="flex w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
               />
             </div>
 
