@@ -8,9 +8,17 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Clock,
   Shield,
@@ -22,6 +30,7 @@ import {
   CheckCircle2,
   Zap,
   History,
+  Flag,
 } from 'lucide-react';
 
 interface BidHistoryItem {
@@ -54,6 +63,45 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const [snipingNotice, setSnipingNotice] = useState<string | null>(null);
   const [endingSoonNotice, setEndingSoonNotice] = useState<string | null>(null);
   const [closedNotice, setClosedNotice] = useState<string | null>(null);
+
+  // Dispute modal states
+  const [isDisputeOpen, setIsDisputeOpen] = useState<boolean>(false);
+  const [disputeTitle, setDisputeTitle] = useState<string>('');
+  const [disputeDescription, setDisputeDescription] = useState<string>('');
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
+  const [disputeMessage, setDisputeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleFileDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!disputeDescription.trim()) return;
+
+    setIsSubmittingDispute(true);
+    setDisputeMessage(null);
+    try {
+      await api.post('/disputes', {
+        auctionId,
+        title: disputeTitle.trim() || undefined,
+        description: disputeDescription.trim(),
+      });
+      setDisputeMessage({
+        type: 'success',
+        text: 'Dispute submitted successfully and queued for admin review.',
+      });
+      setTimeout(() => {
+        setIsDisputeOpen(false);
+        setDisputeTitle('');
+        setDisputeDescription('');
+        setDisputeMessage(null);
+      }, 2000);
+    } catch (err: any) {
+      setDisputeMessage({
+        type: 'error',
+        text: err.message || 'Failed to submit dispute',
+      });
+    } finally {
+      setIsSubmittingDispute(false);
+    }
+  };
 
   // Initial load via REST API
   useEffect(() => {
@@ -586,8 +634,92 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
               </p>
             </div>
           </Card>
+
+          {/* Dispute / Reporting Link */}
+          {isAuthenticated && (
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => setIsDisputeOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                <Flag className="size-3" /> Report an issue or dispute with this listing
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* File Dispute Dialog */}
+      <Dialog open={isDisputeOpen} onClose={() => setIsDisputeOpen(false)}>
+        <DialogHeader>
+          <DialogTitle>File a Dispute</DialogTitle>
+          <DialogDescription>
+            Submit an official dispute regarding &quot;{auction.title}&quot;. Our administration team will review all details and evidence.
+          </DialogDescription>
+        </DialogHeader>
+
+        {disputeMessage && (
+          <div
+            className={`p-3 rounded-md text-xs mb-3 ${
+              disputeMessage.type === 'success'
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+                : 'bg-red-500/10 border border-red-500/30 text-red-500'
+            }`}
+          >
+            {disputeMessage.text}
+          </div>
+        )}
+
+        <form onSubmit={handleFileDispute} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              Dispute Title (Optional)
+            </label>
+            <Input
+              type="text"
+              placeholder="e.g. Item not as described, suspicious bidding"
+              value={disputeTitle}
+              onChange={(e) => setDisputeTitle(e.target.value)}
+              disabled={isSubmittingDispute}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              Description of the Issue <span className="text-red-400">*</span>
+            </label>
+            <Textarea
+              rows={4}
+              placeholder="Describe the problem, communication breakdown, or listing inaccuracy in detail..."
+              value={disputeDescription}
+              onChange={(e) => setDisputeDescription(e.target.value)}
+              disabled={isSubmittingDispute}
+              required
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDisputeOpen(false)}
+              disabled={isSubmittingDispute}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={isSubmittingDispute || !disputeDescription.trim()}
+            >
+              {isSubmittingDispute ? 'Submitting...' : 'Submit dispute'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
     </div>
   );
 }
