@@ -21,7 +21,16 @@ import {
   AlertCircle,
   CheckCircle2,
   Zap,
+  History,
 } from 'lucide-react';
+
+interface BidHistoryItem {
+  _id: string;
+  amount: number;
+  createdAt: string;
+  bidderName: string;
+  bidderId?: string;
+}
 
 function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -34,6 +43,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [bidAmount, setBidAmount] = useState<string>('');
+  const [bidHistory, setBidHistory] = useState<BidHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +67,16 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
         }
         if (data.timeRemainingSeconds !== undefined) {
           setTimeRemaining(data.timeRemainingSeconds);
+        }
+
+        // Fetch initial bid history ledger
+        try {
+          const bidsRes = await api.get(`/auctions/${auctionId}/bids`);
+          if (bidsRes && Array.isArray(bidsRes.bids)) {
+            setBidHistory(bidsRes.bids);
+          }
+        } catch {
+          // Non-blocking fallback
         }
       } catch (err: any) {
         setError(err.message || 'Auction listing not found');
@@ -123,6 +143,24 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
         if (data.secondsLeft !== undefined) {
           setTimeRemaining(data.secondsLeft);
         }
+
+        // Prepend new bid to live history ledger
+        const rawName = data.bidderName || 'Bidder';
+        const masked =
+          rawName.length > 2
+            ? `${rawName[0]}***${rawName[rawName.length - 1]}`
+            : `${rawName[0]}*`;
+
+        setBidHistory((prev) => [
+          {
+            _id: `bid-${Date.now()}`,
+            amount: data.currentBid,
+            createdAt: new Date().toISOString(),
+            bidderName: masked,
+            bidderId: data.highestBidderId,
+          },
+          ...prev,
+        ]);
 
         setIsSubmittingBid(false);
         setBidError(null);
@@ -354,6 +392,57 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 whitespace-pre-line">
               {auction.description}
             </p>
+          </Card>
+
+          {/* Bid History Ledger Card */}
+          <Card className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-montserrat font-semibold text-lg text-foreground flex items-center gap-2">
+                <History className="size-4.5 text-neutral-400" /> Live Bid Ledger
+              </h2>
+              <Chip tone="default">
+                {bidHistory.length} {bidHistory.length === 1 ? 'bid' : 'bids'}
+              </Chip>
+            </div>
+
+            {bidHistory.length === 0 ? (
+              <p className="text-xs text-neutral-500 py-4 text-center">
+                No bids placed yet. Be the first to place a live bid!
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto divide-y divide-neutral-200/60 dark:divide-neutral-800/60 pr-1">
+                {bidHistory.map((item, idx) => (
+                  <div
+                    key={item._id || idx}
+                    className="flex items-center justify-between pt-2.5 first:pt-0 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-[10px] font-semibold text-neutral-600 dark:text-neutral-300">
+                        {idx === 0 ? '★' : `#${bidHistory.length - idx}`}
+                      </div>
+                      <span className="font-medium text-foreground">{item.bidderName}</span>
+                      {idx === 0 && (
+                        <Chip tone="success" className="text-[10px] py-0 px-1.5">
+                          Highest
+                        </Chip>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-montserrat font-bold text-sm text-foreground">
+                        ${item.amount.toLocaleString()}
+                      </span>
+                      <span className="text-[11px] text-neutral-400">
+                        {new Date(item.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 

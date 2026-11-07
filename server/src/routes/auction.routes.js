@@ -5,6 +5,7 @@ import {
   deleteAuction,
   getAuctions,
   getAuctionById,
+  getAuctionBids,
 } from '../controllers/auction.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { uploadAuctionImages, handleUploadErrors } from '../middleware/upload.middleware.js';
@@ -14,6 +15,7 @@ const router = Router();
 // Public routes
 router.get('/', getAuctions);
 router.get('/:id', getAuctionById);
+router.get('/:id/bids', getAuctionBids);
 
 // Protected routes (require auth)
 router.post(

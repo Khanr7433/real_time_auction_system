@@ -1,4 +1,5 @@
 import { Auction } from '../models/Auction.js';
+import { Bid } from '../models/Bid.js';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -255,6 +256,43 @@ export async function getAuctionById(req, res) {
     });
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Failed to fetch auction details' });
+  }
+}
+
+// GET /api/auctions/:id/bids - Get chronological bid history for an auction
+export async function getAuctionBids(req, res) {
+  try {
+    const { id } = req.params;
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 30));
+
+    const bids = await Bid.find({ auctionId: id })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('bidderId', 'displayName avatar')
+      .lean();
+
+    const maskedBids = bids.map((b) => {
+      const name = b.bidderId?.displayName || 'Bidder';
+      const maskedName =
+        name.length > 2
+          ? `${name[0]}***${name[name.length - 1]}`
+          : `${name[0] || 'B'}*`;
+
+      return {
+        _id: b._id,
+        amount: b.amount,
+        createdAt: b.createdAt,
+        bidderName: maskedName,
+        bidderId: b.bidderId?._id,
+      };
+    });
+
+    return res.status(200).json({
+      bids: maskedBids,
+      total: maskedBids.length,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch bid history' });
   }
 }
 
