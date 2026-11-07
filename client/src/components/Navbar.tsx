@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
+import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard, Bell } from 'lucide-react';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -53,6 +53,13 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/notifications"
+                className="p-2 rounded-lg text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors relative"
+                title="Notifications"
+              >
+                <Bell className="size-4.5" />
+              </Link>
               <Link
                 href="/dashboard/profile"
                 className="flex items-center gap-2 text-sm text-foreground hover:text-brand px-3 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
@@ -116,6 +123,14 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Dashboard
+              </Link>
+              <Link
+                href="/dashboard/notifications"
+                className="block text-sm font-medium py-1.5 text-foreground flex items-center justify-between"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span>Notifications</span>
+                <Bell className="size-4 text-neutral-400" />
               </Link>
               <Link
                 href="/dashboard/profile"
