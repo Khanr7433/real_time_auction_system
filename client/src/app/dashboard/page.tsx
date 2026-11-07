@@ -8,6 +8,8 @@ import { api } from '@/lib/api';
 import { Auction } from '@/types/auction';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
 import { Plus, Edit, Trash2, Lock, Eye, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function SellerDashboardPage() {
@@ -84,10 +86,9 @@ export default function SellerDashboardPage() {
       </div>
 
       {actionError && (
-        <div className="p-3 text-xs rounded-md bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2">
-          <AlertCircle className="size-4 shrink-0" />
-          <span>{actionError}</span>
-        </div>
+        <Alert tone="danger" title="Error" onDismiss={() => setActionError(null)}>
+          {actionError}
+        </Alert>
       )}
 
       {/* Tabs */}
@@ -150,7 +151,7 @@ export default function SellerDashboardPage() {
                 List an item for auction to start receiving bids in real-time.
               </p>
               <Link href="/dashboard/create">
-                <Button variant="solid" size="sm">
+                <Button variant="soft" size="sm">
                   Create your first listing
                 </Button>
               </Link>
@@ -212,12 +213,9 @@ export default function SellerDashboardPage() {
                       </Link>
 
                       {isLocked ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-xs text-neutral-400 px-2 py-1 bg-neutral-200/50 dark:bg-neutral-800/50 rounded"
-                          title="Locked after first bid"
-                        >
+                        <Chip tone="default" title="Locked after first bid">
                           <Lock className="size-3" /> Locked
-                        </span>
+                        </Chip>
                       ) : (
                         <>
                           <Link href={`/dashboard/edit/${listing._id}`}>
