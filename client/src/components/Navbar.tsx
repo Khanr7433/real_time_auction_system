@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
 import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard, Bell } from 'lucide-react';
 
 export function Navbar() {
@@ -21,10 +22,9 @@ export function Navbar() {
           <span className="font-montserrat font-bold text-lg tracking-tight text-foreground">
             Bid<span className="text-yellow-800 dark:text-orange-100">Now</span>
           </span>
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            LIVE
-          </span>
+          <Chip tone="success" dot className="text-[10px] py-0 px-1.5 uppercase font-semibold">
+            Live
+          </Chip>
         </Link>
 
         {/* Desktop Navigation */}
