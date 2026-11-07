@@ -1,5 +1,6 @@
 import { Auction } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
+import notificationService from '../services/notification.service.js';
 
 export function registerBiddingHandlers(io, socket) {
   // Join specific auction room
@@ -149,6 +150,24 @@ export function registerBiddingHandlers(io, socket) {
         bidderId: socket.userId,
         amount: numericAmount,
       });
+
+      // Send outbid notification to previous highest bidder if one exists and is different from current bidder
+      const previousHighestBidderId = currentAuction.highestBidderId;
+      if (previousHighestBidderId && previousHighestBidderId.toString() !== socket.userId) {
+        notificationService
+          .sendNotification({
+            userId: previousHighestBidderId,
+            type: 'outbid',
+            title: 'Outbid Alert',
+            message: `You were outbid on "${currentAuction.title}". The new highest bid is $${updatedAuction.currentBid.toLocaleString()}.`,
+            data: {
+              auctionId: updatedAuction._id.toString(),
+              auctionTitle: currentAuction.title,
+              newBid: updatedAuction.currentBid,
+            },
+          })
+          .catch((err) => console.error('Failed to send outbid notification:', err.message));
+      }
 
       const secondsLeft = Math.max(0, Math.floor((new Date(updatedAuction.endTime).getTime() - Date.now()) / 1000));
       const roomName = `auction:${auctionId}`;
