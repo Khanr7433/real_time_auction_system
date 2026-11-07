@@ -52,6 +52,11 @@ export function initSocket(io) {
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id} (User: ${socket.user?.displayName || socket.userId})`);
 
+    // Join user's personal room for direct notification delivery
+    if (socket.userId) {
+      socket.join(`user:${socket.userId}`);
+    }
+
     // Register bidding event listeners
     registerBiddingHandlers(io, socket);
 

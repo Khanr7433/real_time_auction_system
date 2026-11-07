@@ -13,6 +13,7 @@ import userRoutes from './routes/user.routes.js';
 import auctionRoutes from './routes/auction.routes.js';
 import initSocket from './socket/index.js';
 import auctionTimerService from './services/auctionTimer.service.js';
+import notificationService from './services/notification.service.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -31,6 +32,9 @@ initSocket(io);
 
 // Initialize Auction Timer Service (server-authoritative countdown & auto-close)
 auctionTimerService.init(io);
+
+// Initialize Notification Service for WebSocket push
+notificationService.init(io);
 
 // Attach io instance to express app for route handlers
 app.set('io', io);
