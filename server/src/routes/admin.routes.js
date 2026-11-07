@@ -4,6 +4,10 @@ import {
   getUsers,
   suspendUser,
   reactivateUser,
+  getAdminAuctions,
+  deleteAdminAuction,
+  flagAuction,
+  terminateAuction,
   createAnnouncement,
 } from '../controllers/admin.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -18,6 +22,12 @@ router.get('/analytics', getAnalytics);
 router.get('/users', getUsers);
 router.patch('/users/:id/suspend', suspendUser);
 router.patch('/users/:id/reactivate', reactivateUser);
+
+router.get('/auctions', getAdminAuctions);
+router.delete('/auctions/:id', deleteAdminAuction);
+router.patch('/auctions/:id/flag', flagAuction);
+router.post('/auctions/:id/terminate', terminateAuction);
+
 router.post('/announcements', createAnnouncement);
 
 export default router;

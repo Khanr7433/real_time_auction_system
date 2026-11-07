@@ -201,6 +201,192 @@ export async function reactivateUser(req, res) {
   }
 }
 
+// GET /api/admin/auctions - List auctions with status filter and pagination
+export async function getAdminAuctions(req, res) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    if (req.query.status && req.query.status !== 'all') {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.flagged === 'true') {
+      filter.isFlagged = true;
+    }
+
+    if (req.query.search && req.query.search.trim()) {
+      const term = req.query.search.trim();
+      filter.$or = [
+        { title: { $regex: term, $options: 'i' } },
+        { description: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    const [auctions, total] = await Promise.all([
+      Auction.find(filter)
+        .populate('sellerId', 'displayName email avatar')
+        .populate('highestBidderId', 'displayName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Auction.countDocuments(filter),
+    ]);
+
+    const enriched = auctions.map((a) => ({
+      ...a,
+      timeRemainingSeconds: Math.max(0, Math.floor((new Date(a.endTime).getTime() - Date.now()) / 1000)),
+    }));
+
+    return res.status(200).json({
+      auctions: enriched,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch admin auctions' });
+  }
+}
+
+// DELETE /api/admin/auctions/:id - Admin remove auction and notify seller
+export async function deleteAdminAuction(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    const sellerId = auction.sellerId;
+    const auctionTitle = auction.title;
+
+    await Auction.findByIdAndDelete(id);
+
+    // Notify seller
+    if (sellerId) {
+      notificationService
+        .sendNotification({
+          userId: sellerId,
+          type: 'system',
+          title: 'Listing Removed by Moderator',
+          message: `Your listing "${auctionTitle}" was removed by an administrator. Reason: ${
+            reason || 'Violation of platform guidelines'
+          }.`,
+          data: { auctionId: id, auctionTitle },
+        })
+        .catch((err) => console.error('Failed to notify seller of removal:', err.message));
+    }
+
+    // Broadcast room closure if live
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`auction:${id}`).emit('auction_ended', {
+        auctionId: id,
+        status: 'admin-terminated',
+        reason: 'Auction removed by administrator',
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Auction removed successfully and seller notified',
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to remove auction' });
+  }
+}
+
+// PATCH /api/admin/auctions/:id/flag - Flag or unflag auction for review
+export async function flagAuction(req, res) {
+  try {
+    const { id } = req.params;
+    const { isFlagged = true, reason = '' } = req.body;
+
+    const auction = await Auction.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          isFlagged: Boolean(isFlagged),
+          flagReason: reason.trim(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    return res.status(200).json({
+      message: isFlagged ? 'Auction flagged for review' : 'Auction unflagged',
+      auction,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to update auction flag status' });
+  }
+}
+
+// POST /api/admin/auctions/:id/terminate - Force-terminate active auction
+export async function terminateAuction(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    if (auction.status !== 'live') {
+      return res.status(400).json({ error: `Cannot terminate auction with status "${auction.status}"` });
+    }
+
+    auction.status = 'admin-terminated';
+    await auction.save();
+
+    // Broadcast to room that auction was terminated
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`auction:${id}`).emit('auction_ended', {
+        auctionId: id,
+        status: 'admin-terminated',
+        winnerId: null,
+        finalBid: auction.currentBid,
+        reason: reason || 'Terminated by administrator',
+      });
+    }
+
+    // Notify seller
+    if (auction.sellerId) {
+      notificationService
+        .sendNotification({
+          userId: auction.sellerId,
+          type: 'system',
+          title: 'Auction Force-Terminated',
+          message: `Your active auction "${auction.title}" was terminated by an administrator. Reason: ${
+            reason || 'Administrative action'
+          }.`,
+          data: { auctionId: id, auctionTitle: auction.title },
+        })
+        .catch((err) => console.error('Failed to notify seller of termination:', err.message));
+    }
+
+    return res.status(200).json({
+      message: 'Auction force-terminated successfully',
+      auction,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to terminate auction' });
+  }
+}
+
 // POST /api/admin/announcements - Broadcast a system announcement
 export async function createAnnouncement(req, res) {
   try {
@@ -233,6 +419,10 @@ export default {
   getUsers,
   suspendUser,
   reactivateUser,
+  getAdminAuctions,
+  deleteAdminAuction,
+  flagAuction,
+  terminateAuction,
   createAnnouncement,
 };
 

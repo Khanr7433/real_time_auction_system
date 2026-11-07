@@ -75,6 +75,16 @@ const auctionSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    flagReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,
