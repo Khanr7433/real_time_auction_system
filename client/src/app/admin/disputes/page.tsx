@@ -6,6 +6,10 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -161,24 +165,21 @@ export default function AdminDisputesPage() {
     switch (status) {
       case 'open':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/30">
-            <AlertTriangle className="size-3" />
+          <Chip tone="danger" icon={<AlertTriangle className="size-3" />}>
             Open Case
-          </span>
+          </Chip>
         );
       case 'resolved':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="size-3" />
+          <Chip tone="success" icon={<CheckCircle2 className="size-3" />}>
             Resolved
-          </span>
+          </Chip>
         );
       case 'dismissed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700">
-            <XCircle className="size-3" />
+          <Chip tone="default" icon={<XCircle className="size-3" />}>
             Dismissed
-          </span>
+          </Chip>
         );
       default:
         return null;
@@ -212,28 +213,12 @@ export default function AdminDisputesPage() {
 
       {/* Notification Banner */}
       {notification && (
-        <div
-          className={`p-3 rounded-lg text-xs flex items-center justify-between gap-2 ${
-            notification.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}
+        <Alert
+          tone={notification.type === 'success' ? 'success' : 'danger'}
+          onClose={() => setNotification(null)}
         >
-          <div className="flex items-center gap-2">
-            {notification.type === 'success' ? (
-              <CheckCircle2 className="size-4 shrink-0" />
-            ) : (
-              <AlertTriangle className="size-4 shrink-0" />
-            )}
-            <span>{notification.message}</span>
-          </div>
-          <button
-            onClick={() => setNotification(null)}
-            className="text-neutral-400 hover:text-foreground text-xs"
-          >
-            ✕
-          </button>
-        </div>
+          {notification.message}
+        </Alert>
       )}
 
       {/* Status Filter Tabs */}
@@ -298,9 +283,9 @@ export default function AdminDisputesPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-800/80">
                   <div className="flex flex-wrap items-center gap-2">
                     {getStatusBadge(item.status)}
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Chip tone="warning">
                       {formatReason(item.reason)}
-                    </span>
+                    </Chip>
                     <span className="text-[11px] font-mono text-neutral-500">
                       Case #{item._id.slice(-8).toUpperCase()}
                     </span>
@@ -336,7 +321,7 @@ export default function AdminDisputesPage() {
                           {item.reporterId?.displayName || 'Unknown User'}
                         </p>
                         <p className="text-[10px] text-neutral-500 font-mono truncate">
-                          {item.reporterId?.email || '—'}
+                          {item.reporterId?.email || 'N/A'}
                         </p>
                       </div>
                     </div>
@@ -356,7 +341,7 @@ export default function AdminDisputesPage() {
                           {item.reportedUserId?.displayName || 'Unknown User'}
                         </p>
                         <p className="text-[10px] text-neutral-500 font-mono truncate">
-                          {item.reportedUserId?.email || '—'}
+                          {item.reportedUserId?.email || 'N/A'}
                         </p>
                       </div>
                     </div>
@@ -432,7 +417,7 @@ export default function AdminDisputesPage() {
                 {isOpen && (
                   <div className="flex justify-end pt-2">
                     <Button
-                      variant="solid"
+                      variant="soft"
                       size="sm"
                       onClick={() => {
                         setResolvingDispute(item);
@@ -483,108 +468,108 @@ export default function AdminDisputesPage() {
 
       {/* Resolution Decision Modal Dialog */}
       {resolvingDispute && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="card-chai max-w-lg w-full p-6 space-y-4 bg-neutral-950 border-neutral-700">
+        <Dialog open={!!resolvingDispute} onClose={() => setResolvingDispute(null)}>
+          <DialogHeader>
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="p-2 rounded-xl border border-emerald-500/40 text-emerald-400 bg-transparent">
                 <ShieldCheck className="size-5" />
               </span>
               <div>
-                <h3 className="font-montserrat text-sm font-bold text-foreground">
+                <DialogTitle>
                   Arbitrate Dispute Case #{resolvingDispute._id.slice(-8).toUpperCase()}
-                </h3>
-                <p className="text-xs text-neutral-400">
+                </DialogTitle>
+                <DialogDescription>
                   Enter final findings. Both parties will be immediately notified.
-                </p>
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleResolveSubmit} className="space-y-4 mt-2">
+            {/* Outcome Selection */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
+                Resolution Outcome
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResolutionStatus('resolved')}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    resolutionStatus === 'resolved'
+                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-semibold'
+                      : 'border-neutral-800 bg-neutral-900/60 text-neutral-400'
+                  }`}
+                >
+                  <p className="text-xs flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5" /> Resolved
+                  </p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">
+                    Finding in favor or settlement reached
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResolutionStatus('dismissed')}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    resolutionStatus === 'dismissed'
+                      ? 'border-neutral-600 bg-neutral-800 text-foreground font-semibold'
+                      : 'border-neutral-800 bg-neutral-900/60 text-neutral-400'
+                  }`}
+                >
+                  <p className="text-xs flex items-center gap-1.5">
+                    <XCircle className="size-3.5" /> Dismissed
+                  </p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">
+                    Unsubstantiated or invalid claim
+                  </p>
+                </button>
               </div>
             </div>
 
-            <form onSubmit={handleResolveSubmit} className="space-y-4">
-              {/* Outcome Selection */}
-              <div>
-                <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                  Resolution Outcome
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setResolutionStatus('resolved')}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
-                      resolutionStatus === 'resolved'
-                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold'
-                        : 'border-neutral-800 bg-neutral-900/60 text-neutral-400'
-                    }`}
-                  >
-                    <p className="text-xs flex items-center gap-1.5">
-                      <CheckCircle2 className="size-3.5" /> Resolved
-                    </p>
-                    <p className="text-[10px] text-neutral-500 mt-0.5">
-                      Finding in favor or settlement reached
-                    </p>
-                  </button>
+            {/* Resolution Note */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-300 mb-1">
+                Resolution Decision Note <span className="text-red-400">*</span>
+              </label>
+              <Textarea
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                placeholder="Detail the rationale, any actions taken (e.g. refunds issued, seller warned), and guidance for both parties..."
+                required
+                rows={4}
+                className="resize-none"
+                maxLength={1000}
+              />
+              <span className="text-[10px] text-neutral-500 text-right block mt-1">
+                {resolutionNote.length} / 1000 characters
+              </span>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setResolutionStatus('dismissed')}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
-                      resolutionStatus === 'dismissed'
-                        ? 'border-neutral-600 bg-neutral-800 text-foreground font-semibold'
-                        : 'border-neutral-800 bg-neutral-900/60 text-neutral-400'
-                    }`}
-                  >
-                    <p className="text-xs flex items-center gap-1.5">
-                      <XCircle className="size-3.5" /> Dismissed
-                    </p>
-                    <p className="text-[10px] text-neutral-500 mt-0.5">
-                      Unsubstantiated or invalid claim
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Resolution Note */}
-              <div>
-                <label className="block text-xs font-medium text-neutral-300 mb-1">
-                  Resolution Decision Note <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  value={resolutionNote}
-                  onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="Detail the rationale, any actions taken (e.g. refunds issued, seller warned), and guidance for both parties..."
-                  required
-                  rows={4}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground resize-none"
-                  maxLength={1000}
-                />
-                <span className="text-[10px] text-neutral-500 text-right block mt-1">
-                  {resolutionNote.length} / 1000 characters
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setResolvingDispute(null)}
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="solid"
-                  size="sm"
-                  disabled={actionId === resolvingDispute._id || !resolutionNote.trim()}
-                  className="text-xs"
-                >
-                  <Send className="size-3.5 mr-1.5" />
-                  {actionId === resolvingDispute._id ? 'Submitting...' : 'Submit Resolution'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setResolvingDispute(null)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="solid"
+                size="sm"
+                disabled={actionId === resolvingDispute._id || !resolutionNote.trim()}
+                className="text-xs"
+              >
+                <Send className="size-3.5 mr-1.5" />
+                {actionId === resolvingDispute._id ? 'Submitting...' : 'Submit Resolution'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Dialog>
       )}
     </div>
   );
