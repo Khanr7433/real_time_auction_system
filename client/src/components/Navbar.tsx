@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard, Bell } from 'lucide-react';
 
 export function Navbar() {
@@ -51,6 +52,7 @@ export function Navbar() {
 
         {/* Desktop Auth Actions */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeSwitcher />
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <Link
@@ -96,18 +98,25 @@ export function Navbar() {
         </div>
 
         {/* Mobile menu trigger */}
-        <button
-          className="md:hidden p-2 text-neutral-600 dark:text-neutral-300"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeSwitcher />
+          <button
+            className="p-2 text-neutral-600 dark:text-neutral-300 cursor-pointer"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-neutral-200 dark:border-neutral-800 bg-background px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800 text-xs font-medium text-neutral-500">
+            <span>Interface theme</span>
+            <ThemeSwitcher />
+          </div>
           <Link
             href="/auctions"
             className="block text-sm font-medium py-1.5 text-foreground"

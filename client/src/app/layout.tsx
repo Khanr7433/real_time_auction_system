@@ -4,6 +4,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SocketProvider } from '@/context/SocketContext';
 import { ToastProvider } from '@/components/Toast';
 import { Navbar } from '@/components/Navbar';
+import { ThemeProvider, ThemeScript } from '@/components/ui/theme-provider';
 
 export const metadata: Metadata = {
   title: 'BidNow - Real-Time Online Auction System',
@@ -16,16 +17,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        <AuthProvider>
-          <SocketProvider>
-            <ToastProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-            </ToastProvider>
-          </SocketProvider>
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning className="h-full antialiased">
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground transition-colors duration-200">
+        <ThemeProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <ToastProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+              </ToastProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
