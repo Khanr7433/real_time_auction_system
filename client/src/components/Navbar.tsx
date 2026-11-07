@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
@@ -11,6 +12,26 @@ import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard, Bell
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      return;
+    }
+    let isMounted = true;
+    api
+      .get('/notifications?isRead=false&limit=1')
+      .then((res) => {
+        if (isMounted && res && res.unreadCount !== undefined) {
+          setUnreadCount(res.unreadCount);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/70 dark:bg-black/60 backdrop-blur-md transition-colors">
@@ -61,6 +82,12 @@ export function Navbar() {
                 title="Notifications"
               >
                 <Bell className="size-4.5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex size-2">
+                    <span className="animate-ping absolute inline-flex size-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-red-500" />
+                  </span>
+                )}
               </Link>
               <Link
                 href="/dashboard/profile"
@@ -69,7 +96,7 @@ export function Navbar() {
                 <div className="size-6 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-xs font-semibold">
                   {user?.displayName ? user.displayName[0].toUpperCase() : <UserIcon className="size-3.5" />}
                 </div>
-                <span className="font-medium text-xs max-w-[120px] truncate">{user?.displayName || user?.email}</span>
+                <span className="font-medium text-xs max-w-30 truncate">{user?.displayName || user?.email}</span>
               </Link>
               <Button
                 variant="ghost"
@@ -135,11 +162,18 @@ export function Navbar() {
               </Link>
               <Link
                 href="/dashboard/notifications"
-                className="block text-sm font-medium py-1.5 text-foreground flex items-center justify-between"
+                className="flex items-center justify-between text-sm font-medium py-1.5 text-foreground"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span>Notifications</span>
-                <Bell className="size-4 text-neutral-400" />
+                <div className="flex items-center gap-1.5">
+                  {unreadCount > 0 && (
+                    <Chip tone="danger" className="text-[10px] py-0 px-1.5">
+                      {unreadCount}
+                    </Chip>
+                  )}
+                  <Bell className="size-4 text-neutral-400" />
+                </div>
               </Link>
               <Link
                 href="/dashboard/profile"

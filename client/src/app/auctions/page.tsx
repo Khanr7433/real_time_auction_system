@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { getMediaUrl } from "@/lib/utils";
 import { Auction, AuctionsResponse } from "@/types/auction";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -261,11 +262,7 @@ export default function AuctionsBrowsePage() {
                   {auction.images && auction.images.length > 0 ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={
-                        auction.images[0].startsWith("http")
-                          ? auction.images[0]
-                          : `${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000"}${auction.images[0]}`
-                      }
+                      src={getMediaUrl(auction.images[0])}
                       alt={auction.title}
                       className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />

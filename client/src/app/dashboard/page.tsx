@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getMediaUrl } from '@/lib/utils';
 import { Auction } from '@/types/auction';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -210,11 +211,7 @@ export default function SellerDashboardPage() {
                         {listing.images && listing.images.length > 0 ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={
-                              listing.images[0].startsWith('http')
-                                ? listing.images[0]
-                                : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000'}${listing.images[0]}`
-                            }
+                            src={getMediaUrl(listing.images[0])}
                             alt={listing.title}
                             className="size-full object-cover"
                           />

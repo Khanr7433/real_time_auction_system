@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { getMediaUrl } from '@/lib/utils';
 import { Auction } from '@/types/auction';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
@@ -321,13 +322,6 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const getFullImageUrl = (pathUrl: string) => {
-    if (!pathUrl) return '';
-    if (pathUrl.startsWith('http')) return pathUrl;
-    const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${base}${pathUrl}`;
-  };
-
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6 sm:p-12">
@@ -401,7 +395,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             {selectedImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={getFullImageUrl(selectedImage)}
+                src={getMediaUrl(selectedImage)}
                 alt={auction.title}
                 className="size-full object-cover object-center"
               />
@@ -425,7 +419,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={getFullImageUrl(img)}
+                    src={getMediaUrl(img)}
                     alt={`Thumbnail ${idx + 1}`}
                     className="size-full object-cover"
                   />
@@ -617,7 +611,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
               {sellerObj?.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={sellerObj.avatar}
+                  src={getMediaUrl(sellerObj.avatar)}
                   alt={sellerObj.displayName}
                   className="size-full rounded-full object-cover"
                 />
