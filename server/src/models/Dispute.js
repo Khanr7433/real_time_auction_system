@@ -59,3 +59,4 @@ disputeSchema.index({ status: 1, createdAt: -1 });
 
 export const Dispute = mongoose.model('Dispute', disputeSchema);
 export default Dispute;
+
