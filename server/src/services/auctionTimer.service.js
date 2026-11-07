@@ -1,4 +1,5 @@
 import { Auction } from '../models/Auction.js';
+import notificationService from './notification.service.js';
 
 class AuctionTimerService {
   constructor() {
@@ -84,6 +85,57 @@ class AuctionTimerService {
         console.log(`Auction ${auctionId} closed with status: ${finalStatus}`);
         this.warningSent.delete(auctionId);
 
+        // Send auction outcome notifications
+        if (updated.bidCount > 0 && updated.highestBidderId) {
+          // Notify Winner
+          notificationService
+            .sendNotification({
+              userId: updated.highestBidderId,
+              type: 'auction_won',
+              title: 'Auction Won!',
+              message: `Congratulations! You won "${updated.title}" with a final bid of $${updated.currentBid.toLocaleString()}.`,
+              data: {
+                auctionId,
+                auctionTitle: updated.title,
+                finalPrice: updated.currentBid,
+                sellerId: updated.sellerId ? updated.sellerId.toString() : null,
+              },
+            })
+            .catch((err) => console.error('Failed to send auction_won notification:', err.message));
+
+          // Notify Seller (Sold)
+          if (updated.sellerId) {
+            notificationService
+              .sendNotification({
+                userId: updated.sellerId,
+                type: 'auction_sold',
+                title: 'Listing Sold!',
+                message: `Your item "${updated.title}" sold for $${updated.currentBid.toLocaleString()}!`,
+                data: {
+                  auctionId,
+                  auctionTitle: updated.title,
+                  finalPrice: updated.currentBid,
+                  winnerId: updated.highestBidderId ? updated.highestBidderId.toString() : null,
+                },
+              })
+              .catch((err) => console.error('Failed to send auction_sold notification:', err.message));
+          }
+        } else if (updated.sellerId) {
+          // Notify Seller (Unsold)
+          notificationService
+            .sendNotification({
+              userId: updated.sellerId,
+              type: 'auction_unsold',
+              title: 'Listing Ended (Unsold)',
+              message: `Your item "${updated.title}" ended with no bids placed.`,
+              data: {
+                auctionId,
+                auctionTitle: updated.title,
+              },
+            })
+            .catch((err) => console.error('Failed to send auction_unsold notification:', err.message));
+        }
+
         if (this.io) {
           const roomName = `auction:${auctionId}`;
           this.io.to(roomName).emit('auction_ended', {
@@ -103,3 +155,4 @@ class AuctionTimerService {
 
 export const auctionTimerService = new AuctionTimerService();
 export default auctionTimerService;
+
