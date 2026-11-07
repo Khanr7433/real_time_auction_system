@@ -11,3 +11,4 @@ router.use(authenticate, requireAdmin);
 router.post('/announcements', createAnnouncement);
 
 export default router;
+

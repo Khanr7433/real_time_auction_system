@@ -27,3 +27,4 @@ export interface NotificationsResponse {
   totalPages: number;
   hasMore: boolean;
 }
+
