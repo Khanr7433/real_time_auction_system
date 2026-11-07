@@ -11,6 +11,7 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import auctionRoutes from './routes/auction.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 import initSocket from './socket/index.js';
 import auctionTimerService from './services/auctionTimer.service.js';
 import notificationService from './services/notification.service.js';
@@ -58,6 +59,7 @@ app.use('/uploads', express.static(path.resolve(import.meta.dirname, '../uploads
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auctions', auctionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
