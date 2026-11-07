@@ -10,7 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
-import { Plus, Edit, Trash2, Lock, Eye, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Lock, Eye, AlertCircle, RefreshCw, Trophy, Gavel, Clock, CheckCircle2 } from 'lucide-react';
+
+interface UserBidItem {
+  auction: Auction;
+  myHighestBid: number;
+  lastBidAt: string;
+  totalUserBids: number;
+  isWinning: boolean;
+  timeRemainingSeconds: number;
+}
 
 export default function SellerDashboardPage() {
   const router = useRouter();
@@ -18,6 +27,8 @@ export default function SellerDashboardPage() {
 
   const [activeTab, setActiveTab] = useState<'listings' | 'bids' | 'won'>('listings');
   const [myListings, setMyListings] = useState<Auction[]>([]);
+  const [myBids, setMyBids] = useState<UserBidItem[]>([]);
+  const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -32,7 +43,6 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
     setActionError(null);
     try {
-      // Query seller's auctions across statuses
       const res = await api.get(`/auctions?sellerId=${user.id}&status=live&limit=50`);
       setMyListings(res.auctions || []);
     } catch {
@@ -42,11 +52,41 @@ export default function SellerDashboardPage() {
     }
   }, [user]);
 
+  const loadMyBids = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setActionError(null);
+    try {
+      const res = await api.get('/users/bids');
+      setMyBids(res.bids || []);
+    } catch {
+      setMyBids([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const loadWonAuctions = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setActionError(null);
+    try {
+      const res = await api.get('/users/won');
+      setWonAuctions(res.auctions || []);
+    } catch {
+      setWonAuctions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
-      loadMyListings();
+      if (activeTab === 'listings') loadMyListings();
+      else if (activeTab === 'bids') loadMyBids();
+      else if (activeTab === 'won') loadWonAuctions();
     }
-  }, [user, loadMyListings]);
+  }, [user, activeTab, loadMyListings, loadMyBids, loadWonAuctions]);
 
   const handleDeleteListing = async (auctionId: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
@@ -111,7 +151,7 @@ export default function SellerDashboardPage() {
               : 'text-neutral-500 hover:text-foreground'
           }`}
         >
-          My Bids
+          My Bids ({myBids.length})
         </button>
         <button
           onClick={() => setActiveTab('won')}
@@ -121,7 +161,7 @@ export default function SellerDashboardPage() {
               : 'text-neutral-500 hover:text-foreground'
           }`}
         >
-          Won Auctions
+          Won Auctions ({wonAuctions.length})
         </button>
       </div>
 
@@ -244,27 +284,148 @@ export default function SellerDashboardPage() {
 
       {/* Tab Content: Bids */}
       {activeTab === 'bids' && (
-        <Card className="text-center py-12 space-y-2">
-          <p className="text-sm font-medium text-foreground">Active Bids</p>
-          <p className="text-xs text-neutral-500">
-            Real-time bid tracking and outbid history will populate here as you bid on live auctions.
-          </p>
-          <Link href="/auctions">
-            <Button variant="outline" size="sm" className="mt-2">
-              Browse auctions to bid
-            </Button>
-          </Link>
-        </Card>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-neutral-500">
+            <span>Auctions you have actively placed bids on</span>
+            <button
+              onClick={loadMyBids}
+              className="flex items-center gap-1 hover:text-foreground cursor-pointer"
+            >
+              <RefreshCw className={`size-3 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="card-chai h-20 animate-pulse bg-neutral-200/50 dark:bg-neutral-800/50" />
+              ))}
+            </div>
+          ) : myBids.length === 0 ? (
+            <Card className="text-center py-12 space-y-3">
+              <p className="text-base font-medium text-foreground">You have not placed bids on any auctions yet</p>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+                Explore active auctions and place bids in real-time.
+              </p>
+              <Link href="/auctions">
+                <Button variant="soft" size="sm">
+                  Browse live auctions
+                </Button>
+              </Link>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {myBids.map((item) => (
+                <div
+                  key={item.auction._id}
+                  className="card-chai p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/auctions/${item.auction._id}`}
+                        className="font-montserrat font-semibold text-sm text-foreground hover:text-brand"
+                      >
+                        {item.auction.title}
+                      </Link>
+                      <Chip tone={item.isWinning ? 'success' : 'warning'} dot>
+                        {item.isWinning ? 'Winning' : 'Outbid'}
+                      </Chip>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-neutral-500">
+                      <span>Your highest: <strong className="text-foreground">${item.myHighestBid.toLocaleString()}</strong></span>
+                      <span>•</span>
+                      <span>Current: <strong className="text-foreground">${item.auction.currentBid.toLocaleString()}</strong></span>
+                      <span>•</span>
+                      <span>{item.totalUserBids} {item.totalUserBids === 1 ? 'bid placed' : 'bids placed'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <Link href={`/auctions/${item.auction._id}`}>
+                      <Button variant="outline" size="sm">
+                        View live room
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Tab Content: Won */}
       {activeTab === 'won' && (
-        <Card className="text-center py-12 space-y-2">
-          <p className="text-sm font-medium text-foreground">Won Auctions</p>
-          <p className="text-xs text-neutral-500">
-            Auctions where you hold the winning bid upon expiration will be listed here.
-          </p>
-        </Card>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-neutral-500">
+            <span>Auctions you have won</span>
+            <button
+              onClick={loadWonAuctions}
+              className="flex items-center gap-1 hover:text-foreground cursor-pointer"
+            >
+              <RefreshCw className={`size-3 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="card-chai h-20 animate-pulse bg-neutral-200/50 dark:bg-neutral-800/50" />
+              ))}
+            </div>
+          ) : wonAuctions.length === 0 ? (
+            <Card className="text-center py-12 space-y-3">
+              <p className="text-base font-medium text-foreground">No won auctions yet</p>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+                Keep an eye on your active bids. When an auction countdown expires while you hold the highest bid, your won items will appear here!
+              </p>
+              <Link href="/auctions">
+                <Button variant="soft" size="sm">
+                  Find auctions to bid
+                </Button>
+              </Link>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {wonAuctions.map((won) => (
+                <div
+                  key={won._id}
+                  className="card-chai p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/auctions/${won._id}`}
+                        className="font-montserrat font-semibold text-sm text-foreground hover:text-brand"
+                      >
+                        {won.title}
+                      </Link>
+                      <Chip tone="success" dot>
+                        <Trophy className="size-3" /> Won
+                      </Chip>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-neutral-500">
+                      <span>Winning bid: <strong className="text-foreground">${won.currentBid.toLocaleString()}</strong></span>
+                      <span>•</span>
+                      <span>Category: {won.category}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <Link href={`/auctions/${won._id}`}>
+                      <Button variant="outline" size="sm">
+                        View item details
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
