@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative isolate overflow-x-clip">
       <div className="w-full max-w-md">
-        <Card className="border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-black/40 backdrop-blur-md shadow-none">
+        <Card className="card-chai">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
             <CardDescription className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -57,11 +58,7 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 text-xs rounded-md bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
-                  {error}
-                </div>
-              )}
+              {error && <Alert tone="danger">{error}</Alert>}
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">

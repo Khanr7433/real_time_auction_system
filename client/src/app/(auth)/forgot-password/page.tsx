@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -75,7 +76,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative isolate overflow-x-clip">
       <div className="w-full max-w-md">
-        <Card className="border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-black/40 backdrop-blur-md shadow-none">
+        <Card className="card-chai">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl font-semibold tracking-tight">
               {step === 'success' ? 'Password reset complete' : 'Reset your password'}
@@ -86,13 +87,13 @@ export default function ForgotPasswordPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 text-xs rounded-md bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
-                {error}
+              <div className="mb-4">
+                <Alert tone="danger">{error}</Alert>
               </div>
             )}
             {message && (
-              <div className="mb-4 p-3 text-xs rounded-md bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
-                {message}
+              <div className="mb-4">
+                <Alert tone="success">{message}</Alert>
               </div>
             )}
 
