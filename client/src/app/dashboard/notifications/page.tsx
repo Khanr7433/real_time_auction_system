@@ -8,6 +8,8 @@ import { useSocket } from '@/context/SocketContext';
 import { NotificationItem, NotificationsResponse } from '@/types/notification';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
 import {
   Bell,
   CheckCircle2,
@@ -181,9 +183,9 @@ export default function NotificationsPage() {
               Notifications
             </h1>
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30">
+              <Chip tone="warning">
                 {unreadCount} unread
-              </span>
+              </Chip>
             )}
           </div>
           <p className="text-xs text-neutral-500 mt-1">
@@ -237,10 +239,9 @@ export default function NotificationsPage() {
 
       {/* Error State */}
       {error && (
-        <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-xs flex items-center gap-2">
-          <AlertCircle className="size-4 shrink-0" />
-          <span>{error}</span>
-        </div>
+        <Alert tone="danger">
+          {error}
+        </Alert>
       )}
 
       {/* Notification List */}
@@ -265,7 +266,7 @@ export default function NotificationsPage() {
               : 'When you place bids or list items, updates will appear here.'}
           </p>
           <Link href="/auctions" className="inline-block pt-2">
-            <Button variant="solid" size="sm">
+            <Button variant="soft" size="sm">
               Explore live auctions
             </Button>
           </Link>
@@ -281,7 +282,7 @@ export default function NotificationsPage() {
                 className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
                   notif.isRead
                     ? 'border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/50 dark:bg-neutral-900/30 opacity-75 hover:opacity-100'
-                    : 'border-yellow-800/30 dark:border-orange-200/25 bg-neutral-100/60 dark:bg-neutral-900/70 shadow-sm'
+                    : 'border-yellow-800/30 dark:border-orange-200/25 bg-neutral-100/60 dark:bg-neutral-900/70'
                 }`}
               >
                 <div className="flex items-start gap-3.5">
@@ -327,7 +328,7 @@ export default function NotificationsPage() {
                     <button
                       onClick={(e) => handleMarkAsRead(notif._id, e)}
                       title="Mark as read"
-                      className="size-2 rounded-full bg-amber-500 shrink-0 mt-2 hover:scale-125 transition-transform"
+                      className="size-2 rounded-full bg-foreground dark:bg-white shrink-0 mt-2 hover:scale-125 transition-transform cursor-pointer"
                     />
                   )}
                 </div>
