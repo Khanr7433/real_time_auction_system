@@ -9,6 +9,8 @@ import { useSocket } from '@/context/SocketContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
 import {
   Clock,
   Shield,
@@ -277,15 +279,9 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           <ArrowLeft className="size-3.5" /> Back to all listings
         </Link>
         <div className="flex items-center gap-2">
-          {isConnected ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live updates
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[11px] text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full">
-              <span className="size-1.5 rounded-full bg-amber-500" /> Connecting
-            </span>
-          )}
+          <Chip tone={isConnected ? 'success' : 'warning'} dot>
+            {isConnected ? 'Live updates' : 'Connecting'}
+          </Chip>
           <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
             {auction.condition}
           </span>
@@ -294,24 +290,21 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
       {/* Notifications and Alerts */}
       {snipingNotice && (
-        <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
-          <Zap className="size-4 shrink-0" />
-          <span>{snipingNotice}</span>
-        </div>
+        <Alert tone="warning" title="Anti-Sniping Active">
+          {snipingNotice}
+        </Alert>
       )}
 
       {endingSoonNotice && (
-        <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
-          <Clock className="size-4 shrink-0" />
-          <span>{endingSoonNotice}</span>
-        </div>
+        <Alert tone="danger" title="Auction Ending Soon">
+          {endingSoonNotice}
+        </Alert>
       )}
 
       {closedNotice && (
-        <div className="p-3 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-200/50 dark:bg-neutral-800/50 text-foreground text-xs flex items-center gap-2">
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-          <span>{closedNotice}</span>
-        </div>
+        <Alert tone="info" title="Auction Closed">
+          {closedNotice}
+        </Alert>
       )}
 
       {/* Main Grid */}
@@ -470,8 +463,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                     className="w-full"
                     disabled={isSubmittingBid || !isConnected}
                   >
-                    {isSubmittingBid ? 'Placing bid...' : 'Place live bid'}{' '}
-                    <ArrowUpRight className="size-4" />
+                    {isSubmittingBid ? 'Placing bid...' : 'Place live bid'}
                   </Button>
 
                   <p className="text-[11px] text-neutral-500 text-center flex items-center justify-center gap-1">
