@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
+import { LiveDot } from '@/components/ui/live-dot';
 import { Alert } from '@/components/ui/alert';
 import {
   Dialog,
@@ -359,9 +360,10 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           <ArrowLeft className="size-3.5" /> Back to all listings
         </Link>
         <div className="flex items-center gap-2">
-          <Chip tone={isConnected ? 'success' : 'warning'} dot>
-            {isConnected ? 'Live updates' : 'Connecting'}
-          </Chip>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-black/40">
+            <LiveDot tone={isConnected ? 'success' : 'warning'} />
+            <span>{isConnected ? 'Live updates' : 'Connecting'}</span>
+          </div>
           <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
             {auction.condition}
           </span>
@@ -430,7 +432,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
           {/* Item Description Card */}
           <Card className="space-y-3">
-            <h2 className="font-montserrat font-semibold text-lg text-foreground">About this item</h2>
+            <h2 className="font-display font-semibold text-lg text-foreground">About this item</h2>
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 whitespace-pre-line">
               {auction.description}
             </p>
@@ -439,7 +441,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           {/* Bid History Ledger Card */}
           <Card className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-montserrat font-semibold text-lg text-foreground flex items-center gap-2">
+              <h2 className="font-display font-semibold text-lg text-foreground flex items-center gap-2">
                 <History className="size-4.5 text-neutral-400" /> Live Bid Ledger
               </h2>
               <Chip tone="default">
@@ -496,7 +498,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                 <Tag className="size-3.5" />
                 <span>{auction.category}</span>
               </div>
-              <h1 className="font-montserrat text-2xl font-bold tracking-tight text-foreground leading-snug">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground leading-snug">
                 {auction.title}
               </h1>
             </div>
@@ -516,7 +518,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             <div className="p-4 rounded-xl border border-neutral-200/80 dark:border-neutral-800/80 space-y-1">
               <span className="text-xs text-neutral-500">Current highest bid</span>
               <div className="flex items-baseline justify-between">
-                <span className="font-montserrat text-3xl font-extrabold text-foreground">
+                <span className="font-display text-3xl font-extrabold text-foreground">
                   ${auction.currentBid.toLocaleString()}
                 </span>
                 <span className="text-xs text-neutral-500">
@@ -620,7 +622,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
               )}
             </div>
             <div>
-              <p className="font-montserrat text-sm font-semibold text-foreground">
+              <p className="font-display text-sm font-semibold text-foreground">
                 {sellerObj?.displayName || 'Verified Seller'}
               </p>
               <p className="text-[11px] text-neutral-500 flex items-center gap-1">
