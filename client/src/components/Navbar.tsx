@@ -113,7 +113,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="solid" size="sm">
+                <Button variant="outline" size="sm">
                   Register
                 </Button>
               </Link>
@@ -203,12 +203,12 @@ export function Navbar() {
           {!isAuthenticated && (
             <div className="pt-2 flex flex-col gap-2">
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full justify-center">
+                <Button variant="ghost" className="w-full justify-center">
                   Sign in
                 </Button>
               </Link>
               <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="solid" className="w-full justify-center">
+                <Button variant="outline" className="w-full justify-center">
                   Create account
                 </Button>
               </Link>
