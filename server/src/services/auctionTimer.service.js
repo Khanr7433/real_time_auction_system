@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Auction } from '../models/Auction.js';
 import notificationService from './notification.service.js';
 
@@ -5,6 +6,7 @@ class AuctionTimerService {
   constructor() {
     this.io = null;
     this.intervalId = null;
+    this.isTicking = false;
     this.warningSent = new Set(); // Track auctions that already received 5-min warning
   }
 
@@ -25,6 +27,18 @@ class AuctionTimerService {
   }
 
   async tick() {
+    // 1. Guard against executing queries when MongoDB is not connected
+    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    if (mongoose.connection.readyState !== 1) {
+      return;
+    }
+
+    // 2. Prevent concurrent / overlapping tick executions
+    if (this.isTicking) {
+      return;
+    }
+
+    this.isTicking = true;
     try {
       const now = new Date();
 
@@ -66,6 +80,8 @@ class AuctionTimerService {
       }
     } catch (err) {
       console.error('Error in AuctionTimerService tick:', err.message);
+    } finally {
+      this.isTicking = false;
     }
   }
 
