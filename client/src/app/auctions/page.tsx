@@ -8,6 +8,8 @@ import { Auction, AuctionsResponse } from "@/types/auction";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
+import { Segmented } from "@/components/ui/segmented";
+import { LiveDot } from "@/components/ui/live-dot";
 import {
   Search,
   SlidersHorizontal,
@@ -112,7 +114,7 @@ export default function AuctionsBrowsePage() {
     <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
       {/* Page Header */}
       <div className="space-y-2">
-        <h1 className="font-montserrat text-3xl sm:text-4xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">
           Live auctions
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -183,28 +185,16 @@ export default function AuctionsBrowsePage() {
           </div>
         )}
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setPage(1);
-                }}
-                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black font-semibold"
-                    : "border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-black/30 text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
+        {/* Category Segmented Control */}
+        <div className="overflow-x-auto pb-1 scrollbar-none">
+          <Segmented
+            options={CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
+            value={selectedCategory}
+            onChange={(cat) => {
+              setSelectedCategory(cat);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
 
@@ -280,13 +270,10 @@ export default function AuctionsBrowsePage() {
                   </div>
 
                   <div className="absolute top-2 right-2">
-                    <Chip
-                      tone={hasEnded ? "default" : "success"}
-                      dot={!hasEnded}
-                      className="backdrop-blur-md bg-black/40 text-[10px]"
-                    >
-                      {hasEnded ? "Closed" : "Live"}
-                    </Chip>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-md bg-black/60 text-white border-white/10">
+                      {!hasEnded && <LiveDot tone="live" className="size-1.5" />}
+                      <span>{hasEnded ? "Closed" : "Live"}</span>
+                    </span>
                   </div>
                 </div>
 
@@ -297,7 +284,7 @@ export default function AuctionsBrowsePage() {
                       <Tag className="size-3" />
                       <span>{auction.category}</span>
                     </div>
-                    <h3 className="font-montserrat text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-yellow-800 dark:group-hover:text-orange-100 transition-colors">
+                    <h3 className="font-display text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-yellow-800 dark:group-hover:text-orange-100 transition-colors">
                       {auction.title}
                     </h3>
                   </div>
@@ -307,7 +294,7 @@ export default function AuctionsBrowsePage() {
                       <span className="text-[10px] text-neutral-500 block">
                         Current bid
                       </span>
-                      <span className="font-montserrat text-base font-bold text-foreground">
+                      <span className="font-display text-base font-bold text-foreground">
                         ${auction.currentBid.toLocaleString()}
                       </span>
                     </div>
