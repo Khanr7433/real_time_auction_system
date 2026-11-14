@@ -16,14 +16,6 @@ import {
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center p-6 sm:p-12 relative isolate overflow-x-clip">
-      {/* Ambient Top Glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden"
-      >
-        <div className="h-[460px] w-[1000px] bg-[radial-gradient(ellipse_at_top,rgba(255,125,12,0.15),rgba(255,125,12,0.03)_50%,transparent_80%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(255,125,12,0.18),rgba(255,125,12,0.04)_50%,transparent_80%)] [mask-image:linear-gradient(to_bottom,white_40%,transparent_100%)]" />
-      </div>
-
       {/* Hero Section */}
       <section className="max-w-4xl w-full text-center pt-16 pb-12 sm:pt-24 sm:pb-20 space-y-6">
         {/* Animated Badge */}
