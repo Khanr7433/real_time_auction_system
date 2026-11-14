@@ -1,4 +1,4 @@
-# BidNow — Real-Time Auction System
+# BidNow: Real-Time Auction System
 
 > A production-grade real-time online auction platform engineered for sub-second bidding precision, atomic concurrency control, synchronized server timers, automated anti-sniping defense, and full administrative moderation.
 
