@@ -44,9 +44,6 @@ export function Navbar() {
           <span className="font-montserrat font-bold text-lg tracking-tight text-foreground">
             Bid<span className="text-yellow-800 dark:text-orange-100">Now</span>
           </span>
-          <Chip tone="success" dot className="text-[10px] py-0 px-1.5 uppercase font-semibold">
-            Live
-          </Chip>
         </Link>
 
         {/* Desktop Navigation */}
