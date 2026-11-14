@@ -1,36 +1,55 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AnimatedBadge } from '@/components/ui/badge';
-import { Gavel, Zap, ShieldCheck, Clock } from 'lucide-react';
+import {
+  Gavel,
+  Zap,
+  ShieldCheck,
+  Clock,
+  ArrowUpRight,
+  UserPlus,
+  Search,
+  Trophy,
+  FileText,
+} from 'lucide-react';
 
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center p-6 sm:p-12 relative isolate overflow-x-clip">
+      {/* Ambient Top Glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden"
+      >
+        <div className="h-[460px] w-[1000px] bg-[radial-gradient(ellipse_at_top,rgba(255,125,12,0.15),rgba(255,125,12,0.03)_50%,transparent_80%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(255,125,12,0.18),rgba(255,125,12,0.04)_50%,transparent_80%)] [mask-image:linear-gradient(to_bottom,white_40%,transparent_100%)]" />
+      </div>
+
       {/* Hero Section */}
-      <section className="max-w-4xl w-full text-center py-16 sm:py-24 space-y-6">
+      <section className="max-w-4xl w-full text-center pt-16 pb-12 sm:pt-24 sm:pb-20 space-y-6">
         {/* Animated Badge */}
         <AnimatedBadge>
           <span className="size-2 rounded-full bg-emerald-500" />
-          MCA Mini-Project Edition
+          Live real-time auction platform
         </AnimatedBadge>
 
         {/* Headline */}
-        <h1 className="font-montserrat text-4xl sm:text-6xl font-semibold tracking-tight leading-tight">
+        <h1 className="font-display text-[42px] md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08] text-foreground">
           Real-time auctions with <span className="highlight">sub-second precision</span>
         </h1>
 
         {/* Lead */}
-        <p className="mx-auto max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
+        <p className="mx-auto max-w-2xl text-base md:text-xl text-neutral-600 dark:text-neutral-400">
           BidNow eliminates the traditional refresh button, delivering{' '}
           <span className="highlight">an instant live bidding experience</span> with synchronized server timers,
           anti-sniping protection, and real-time outbid notifications.
         </p>
 
-        {/* Buttons */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {/* Action Buttons */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/auctions">
             <Button variant="solid" size="lg" className="w-full sm:w-auto">
               Explore live auctions
+              <ArrowUpRight className="size-4 ml-1.5" />
             </Button>
           </Link>
           <Link href="/register">
@@ -39,37 +58,137 @@ export default function Home() {
             </Button>
           </Link>
         </div>
+      </section>
 
-        {/* Feature Highlights Grid */}
-        <div className="pt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-          <div className="card-chai p-5 space-y-2">
-            <div className="size-9 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+      {/* How It Works Section */}
+      <section className="max-w-6xl w-full py-16 sm:py-20 space-y-10 border-t border-neutral-200/60 dark:border-neutral-800/60">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-[30px] font-medium tracking-tight text-foreground">
+            How the auction <span className="highlight">lifecycle operates</span>
+          </h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            From initial catalog discovery to final settlement, every step executes through synchronized server events.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+              <UserPlus className="size-5" />
+            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">1. Register and verify</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Create an account in seconds to unlock live bidding, instant outbid alerts, and personal watchlist tracking.
+            </p>
+          </div>
+
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+              <Search className="size-5" />
+            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">2. Discover listings</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Browse active lots with live synchronized countdown clocks, verified item media, and starting bid baselines.
+            </p>
+          </div>
+
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+              <Gavel className="size-5" />
+            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">3. Compete in real time</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Place instantaneous increments with zero page refreshes. Anti-sniping logic extends time if bids land near closing.
+            </p>
+          </div>
+
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+              <Trophy className="size-5" />
+            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">4. Win and settle</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Winning bids settle instantaneously upon timer expiration with immutable audit records and automated alerts.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture & Reliability Section */}
+      <section className="max-w-6xl w-full py-16 sm:py-20 space-y-10 border-t border-neutral-200/60 dark:border-neutral-800/60">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-[30px] font-medium tracking-tight text-foreground">
+            Engineered with <span className="highlight">resilient architecture</span>
+          </h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Constructed to guarantee race condition immunity and reliable outbid notifications during peak traffic.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
               <Zap className="size-5" />
             </div>
-            <h3 className="font-montserrat font-semibold text-sm text-foreground">Sub-second updates</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Live WebSocket rooms push bid increments and time checks instantly to all active watchers.
+            <h3 className="font-display font-semibold text-sm text-foreground">Sub-second room sync</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              WebSocket rooms broadcast bid increments and participant counts with sub-second latency across all spectators.
             </p>
           </div>
 
-          <div className="card-chai p-5 space-y-2">
-            <div className="size-9 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
               <Clock className="size-5" />
             </div>
-            <h3 className="font-montserrat font-semibold text-sm text-foreground">Anti-sniping defense</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Bids placed in the final 30 seconds automatically extend the auction clock by 60 seconds.
+            <h3 className="font-display font-semibold text-sm text-foreground">Anti-sniping defense</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Bids placed in the final 30 seconds automatically extend the auction clock by 60 seconds to prevent bot sniping.
             </p>
           </div>
 
-          <div className="card-chai p-5 space-y-2">
-            <div className="size-9 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
               <ShieldCheck className="size-5" />
             </div>
-            <h3 className="font-montserrat font-semibold text-sm text-foreground">Atomic OCC safety</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Database version checks prevent collision conflicts during simultaneous high-velocity bids.
+            <h3 className="font-display font-semibold text-sm text-foreground">Atomic OCC safety</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Database document version checks prevent collision conflicts during simultaneous high-velocity bidding bursts.
             </p>
+          </div>
+
+          <div className="card-chai p-6 space-y-3">
+            <div className="size-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-foreground">
+              <FileText className="size-5" />
+            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">Audit ledger feed</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              Every bid is appended to a chronological audit feed, ensuring verifiable transaction provenance and transparency.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Secondary Call to Action */}
+      <section className="max-w-4xl w-full py-16 sm:py-24 border-t border-neutral-200/60 dark:border-neutral-800/60">
+        <div className="card-chai p-8 sm:p-12 text-center space-y-6">
+          <h2 className="text-2xl sm:text-[32px] font-medium tracking-tight text-foreground">
+            Experience <span className="highlight">frictionless live bidding</span>
+          </h2>
+          <p className="mx-auto max-w-xl text-sm sm:text-base text-neutral-500 dark:text-neutral-400 leading-relaxed">
+            Join collectors and traders participating in auctions with transparent real-time updates and guaranteed execution safety.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/auctions">
+              <Button variant="solid" size="lg" className="w-full sm:w-auto">
+                Explore active auctions
+                <ArrowUpRight className="size-4 ml-1.5" />
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                Create account
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
