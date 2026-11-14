@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Segmented } from '@/components/ui/segmented';
 import { Plus, Edit, Trash2, Lock, Eye, AlertCircle, RefreshCw, Trophy, Gavel, Clock, CheckCircle2 } from 'lucide-react';
 
 interface UserBidItem {
@@ -32,6 +34,8 @@ export default function SellerDashboardPage() {
   const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -89,14 +93,18 @@ export default function SellerDashboardPage() {
     }
   }, [user, activeTab, loadMyListings, loadMyBids, loadWonAuctions]);
 
-  const handleDeleteListing = async (auctionId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
     setActionError(null);
     try {
-      await api.delete(`/auctions/${auctionId}`);
-      setMyListings((prev) => prev.filter((a) => a._id !== auctionId));
+      await api.delete(`/auctions/${deleteTarget.id}`);
+      setMyListings((prev) => prev.filter((a) => a._id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err: any) {
       setActionError(err.message || 'Failed to delete auction');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -113,7 +121,7 @@ export default function SellerDashboardPage() {
       {/* Top Banner & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-montserrat text-2xl sm:text-3xl font-semibold tracking-tight">Seller dashboard</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">Seller dashboard</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Track your listings, active bidding activity, and <span className="highlight">won auctions</span>.
           </p>
@@ -132,38 +140,17 @@ export default function SellerDashboardPage() {
         </Alert>
       )}
 
-      {/* Tabs */}
-      <div className="flex border-b border-neutral-200 dark:border-neutral-800 space-x-6">
-        <button
-          onClick={() => setActiveTab('listings')}
-          className={`pb-3 text-sm font-medium transition-colors cursor-pointer ${
-            activeTab === 'listings'
-              ? 'border-b-2 border-neutral-900 dark:border-white text-foreground'
-              : 'text-neutral-500 hover:text-foreground'
-          }`}
-        >
-          My Listings ({myListings.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('bids')}
-          className={`pb-3 text-sm font-medium transition-colors cursor-pointer ${
-            activeTab === 'bids'
-              ? 'border-b-2 border-neutral-900 dark:border-white text-foreground'
-              : 'text-neutral-500 hover:text-foreground'
-          }`}
-        >
-          My Bids ({myBids.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('won')}
-          className={`pb-3 text-sm font-medium transition-colors cursor-pointer ${
-            activeTab === 'won'
-              ? 'border-b-2 border-neutral-900 dark:border-white text-foreground'
-              : 'text-neutral-500 hover:text-foreground'
-          }`}
-        >
-          Won Auctions ({wonAuctions.length})
-        </button>
+      {/* Segmented Navigation */}
+      <div className="overflow-x-auto pb-1 scrollbar-none">
+        <Segmented<'listings' | 'bids' | 'won'>
+          options={[
+            { value: 'listings', label: 'My Listings', count: myListings.length },
+            { value: 'bids', label: 'My Bids', count: myBids.length },
+            { value: 'won', label: 'Won Auctions', count: wonAuctions.length },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       {/* Tab Content: Listings */}
@@ -263,7 +250,7 @@ export default function SellerDashboardPage() {
                           <Button
                             variant="danger"
                             size="sm"
-                            onClick={() => handleDeleteListing(listing._id, listing.title)}
+                            onClick={() => setDeleteTarget({ id: listing._id, title: listing.title })}
                             title="Delete listing"
                           >
                             <Trash2 className="size-4" />
@@ -424,6 +411,19 @@ export default function SellerDashboardPage() {
           )}
         </div>
       )}
+
+      {/* Delete Listing Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete listing"
+        description={`Are you sure you want to permanently delete "${deleteTarget?.title}"? This action cannot be reversed.`}
+        confirmLabel="Delete listing"
+        cancelLabel="Keep listing"
+        tone="danger"
+        busy={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
