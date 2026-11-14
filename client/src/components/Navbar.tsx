@@ -1,13 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { api } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
-import { ThemeSwitcher } from '@/components/ui/theme-switcher';
-import { Gavel, User as UserIcon, Shield, Menu, X, LogOut, LayoutDashboard, Bell } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import {
+  Gavel,
+  User as UserIcon,
+  Shield,
+  Menu,
+  X,
+  LogOut,
+  LayoutDashboard,
+  Bell,
+} from "lucide-react";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -21,7 +30,7 @@ export function Navbar() {
     }
     let isMounted = true;
     api
-      .get('/notifications?isRead=false&limit=1')
+      .get("/notifications?isRead=false&limit=1")
       .then((res) => {
         if (isMounted && res && res.unreadCount !== undefined) {
           setUnreadCount(res.unreadCount);
@@ -48,16 +57,22 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          <Link href="/auctions" className="hover:text-foreground transition-colors">
+          <Link
+            href="/auctions"
+            className="hover:text-foreground transition-colors"
+          >
             Auctions
           </Link>
           {isAuthenticated && (
-            <Link href="/dashboard" className="hover:text-foreground transition-colors flex items-center gap-1.5">
+            <Link
+              href="/dashboard"
+              className="hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
               <LayoutDashboard className="size-4" />
               Dashboard
             </Link>
           )}
-          {isAuthenticated && user?.role === 'admin' && (
+          {isAuthenticated && user?.role === "admin" && (
             <Link
               href="/admin"
               className="text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-1"
@@ -91,9 +106,15 @@ export function Navbar() {
                 className="flex items-center gap-2 text-sm text-foreground hover:text-brand px-3 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
               >
                 <div className="size-6 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-xs font-semibold">
-                  {user?.displayName ? user.displayName[0].toUpperCase() : <UserIcon className="size-3.5" />}
+                  {user?.displayName ? (
+                    user.displayName[0].toUpperCase()
+                  ) : (
+                    <UserIcon className="size-3.5" />
+                  )}
                 </div>
-                <span className="font-medium text-xs max-w-30 truncate">{user?.displayName || user?.email}</span>
+                <span className="font-medium text-xs max-w-30 truncate">
+                  {user?.displayName || user?.email}
+                </span>
               </Link>
               <Button
                 variant="ghost"
@@ -113,7 +134,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="outline" size="sm">
+                <Button variant="solid" size="sm">
                   Register
                 </Button>
               </Link>
@@ -129,7 +150,11 @@ export function Navbar() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {mobileMenuOpen ? (
+              <X className="size-5" />
+            ) : (
+              <Menu className="size-5" />
+            )}
           </button>
         </div>
       </div>
@@ -179,7 +204,7 @@ export function Navbar() {
               >
                 Profile ({user?.displayName})
               </Link>
-              {user?.role === 'admin' && (
+              {user?.role === "admin" && (
                 <Link
                   href="/admin"
                   className="block text-sm font-medium py-1.5 text-amber-500"
@@ -219,4 +244,3 @@ export function Navbar() {
     </header>
   );
 }
-
