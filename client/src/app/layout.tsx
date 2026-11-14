@@ -4,6 +4,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SocketProvider } from '@/context/SocketContext';
 import { ToastProvider } from '@/components/Toast';
 import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
 import { ThemeProvider, ThemeScript } from '@/components/ui/theme-provider';
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
               <ToastProvider>
                 <Navbar />
                 <main className="flex-1">{children}</main>
+                <Footer />
               </ToastProvider>
             </SocketProvider>
           </AuthProvider>
