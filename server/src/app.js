@@ -7,7 +7,7 @@ import morgan from 'morgan';
 import { Server } from 'socket.io';
 
 import config from './config/index.js';
-import connectDB from './config/db.js';
+import connectDB, { getDatabaseStatus } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import auctionRoutes from './routes/auction.routes.js';
@@ -32,9 +32,6 @@ const io = new Server(server, {
 
 // Configure Socket.io authentication & event handlers
 initSocket(io);
-
-// Initialize Auction Timer Service (server-authoritative countdown & auto-close)
-auctionTimerService.init(io);
 
 // Initialize Notification Service for WebSocket push
 notificationService.init(io);
@@ -67,7 +64,13 @@ app.use('/api/disputes', disputeRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'BidNow API', timestamp: new Date() });
+  const dbStatus = getDatabaseStatus();
+  res.status(200).json({
+    status: 'ok',
+    service: 'BidNow API',
+    database: dbStatus,
+    timestamp: new Date(),
+  });
 });
 
 // Centralized error handler
@@ -84,8 +87,11 @@ const startServer = async () => {
   try {
     await connectDB();
   } catch (err) {
-    console.warn('Proceeding without immediate DB connection (will retry as needed)...');
+    console.warn('[Server] Proceeding without immediate DB connection (auto-retry active in background)...');
   }
+
+  // Initialize Auction Timer Service upon server startup
+  auctionTimerService.init(io);
 
   return new Promise((resolve) => {
     server.listen(config.port, () => {
