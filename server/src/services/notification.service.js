@@ -1,4 +1,5 @@
 import { Notification } from '../models/Notification.js';
+import User from '../models/User.js';
 
 class NotificationService {
   constructor() {
@@ -21,7 +22,6 @@ class NotificationService {
       throw new Error('userId, type, and message are required for notifications');
     }
 
-    // 1. Persist notification document in MongoDB
     const notification = await Notification.create({
       userId,
       type,
@@ -31,7 +31,6 @@ class NotificationService {
       isRead: false,
     });
 
-    // 2. Deliver in real-time via user-specific socket room if Socket.io is initialized
     if (this.io) {
       const userRoom = `user:${userId.toString()}`;
       const payload = {
@@ -45,10 +44,7 @@ class NotificationService {
         createdAt: notification.createdAt,
       };
 
-      // Emit specific event type (e.g. outbid, auction_won, auction_sold, etc.)
       this.io.to(userRoom).emit(type, payload);
-
-      // Also emit general 'notification' event for client notification centers
       this.io.to(userRoom).emit('notification', payload);
     }
 
@@ -56,30 +52,58 @@ class NotificationService {
   }
 
   /**
-   * Broadcasts a system announcement to all connected sockets and optionally persists it.
+   * Persists per-user system announcements in MongoDB and delivers them via WebSocket.
    */
   async broadcastSystemAnnouncement({ title, message, data = {} }) {
     if (!message) {
       throw new Error('Message is required for system announcements');
     }
 
-    const payload = {
-      type: 'system_announcement',
-      title: title || 'System Announcement',
-      message,
-      data,
-      createdAt: new Date(),
-    };
+    const normalizedTitle = title || 'System Announcement';
+    const activeUsers = await User.find({ isSuspended: false }).select('_id').lean();
 
-    if (this.io) {
-      this.io.emit('system_announcement', payload);
-      this.io.emit('notification', payload);
+    let insertedNotifications = [];
+    if (Array.isArray(activeUsers) && activeUsers.length > 0) {
+      const docs = activeUsers.map((u) => ({
+        userId: u._id,
+        type: 'system_announcement',
+        title: normalizedTitle,
+        message,
+        data,
+        isRead: false,
+      }));
+      insertedNotifications = await Notification.insertMany(docs);
     }
 
-    return payload;
+    if (this.io) {
+      for (const notif of insertedNotifications) {
+        const uid = notif.userId.toString();
+        const payload = {
+          _id: notif._id.toString(),
+          userId: uid,
+          type: 'system_announcement',
+          title: notif.title,
+          message: notif.message,
+          data: notif.data,
+          isRead: false,
+          createdAt: notif.createdAt,
+        };
+        const userRoom = `user:${uid}`;
+        this.io.to(userRoom).emit('system_announcement', payload);
+        this.io.to(userRoom).emit('notification', payload);
+      }
+    }
+
+    return {
+      type: 'system_announcement',
+      title: normalizedTitle,
+      message,
+      data,
+      recipientCount: insertedNotifications.length,
+      createdAt: new Date(),
+    };
   }
 }
 
 export const notificationService = new NotificationService();
 export default notificationService;
-
