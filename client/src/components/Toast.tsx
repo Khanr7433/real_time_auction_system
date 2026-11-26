@@ -203,57 +203,57 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
     switch (toast.type) {
       case 'outbid':
         return {
-          icon: <AlertCircle className="size-5 text-red-500 shrink-0" />,
+          icon: <AlertCircle className="size-5 text-red-600 dark:text-red-400 shrink-0" />,
           border: 'border-red-500/30',
-          bg: 'bg-red-950/20 dark:bg-red-950/40',
+          bg: 'bg-card/95',
         };
       case 'auction_won':
         return {
-          icon: <Trophy className="size-5 text-amber-400 shrink-0" />,
-          border: 'border-amber-400/30',
-          bg: 'bg-neutral-900/80',
+          icon: <Trophy className="size-5 text-yellow-800 dark:text-orange-100 shrink-0" />,
+          border: 'border-brand/35',
+          bg: 'bg-card/95',
         };
       case 'auction_sold':
         return {
-          icon: <Tag className="size-5 text-emerald-400 shrink-0" />,
+          icon: <Tag className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />,
           border: 'border-emerald-500/30',
-          bg: 'bg-neutral-900/80',
+          bg: 'bg-card/95',
         };
       case 'auction_unsold':
         return {
-          icon: <Clock className="size-5 text-neutral-400 shrink-0" />,
-          border: 'border-neutral-700',
-          bg: 'bg-neutral-900/80',
+          icon: <Clock className="size-5 text-muted-foreground shrink-0" />,
+          border: 'border-card-edge',
+          bg: 'bg-card/95',
         };
       case 'auction_ending_soon':
         return {
-          icon: <Clock className="size-5 text-amber-400 shrink-0" />,
-          border: 'border-amber-500/30',
-          bg: 'bg-neutral-900/80',
+          icon: <Clock className="size-5 text-yellow-800 dark:text-orange-100 shrink-0" />,
+          border: 'border-brand/35',
+          bg: 'bg-card/95',
         };
       case 'system_announcement':
         return {
-          icon: <Megaphone className="size-5 text-blue-400 shrink-0" />,
-          border: 'border-blue-500/40',
-          bg: 'bg-blue-950/20 dark:bg-blue-950/40',
+          icon: <Megaphone className="size-5 text-blue-600 dark:text-blue-400 shrink-0" />,
+          border: 'border-blue-500/35',
+          bg: 'bg-card/95',
         };
       case 'success':
         return {
-          icon: <CheckCircle2 className="size-5 text-emerald-400 shrink-0" />,
+          icon: <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />,
           border: 'border-emerald-500/30',
-          bg: 'bg-emerald-950/20',
+          bg: 'bg-card/95',
         };
       case 'error':
         return {
-          icon: <AlertCircle className="size-5 text-red-500 shrink-0" />,
+          icon: <AlertCircle className="size-5 text-red-600 dark:text-red-400 shrink-0" />,
           border: 'border-red-500/30',
-          bg: 'bg-red-950/20',
+          bg: 'bg-card/95',
         };
       default:
         return {
-          icon: <Info className="size-5 text-neutral-300 shrink-0" />,
-          border: 'border-neutral-500/20',
-          bg: 'bg-neutral-900/40',
+          icon: <Info className="size-5 text-muted-foreground shrink-0" />,
+          border: 'border-card-edge',
+          bg: 'bg-card/95',
         };
     }
   };
@@ -263,29 +263,30 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border ${style.border} ${style.bg} backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-3`}
+      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border ${style.border} ${style.bg} backdrop-blur-md transition-all duration-200 animate-[chai-pop_0.18s_cubic-bezier(0.2,0.8,0.2,1)]`}
     >
       {style.icon}
       <div className="flex-1 min-w-0 space-y-1">
-        <h4 className="font-montserrat text-sm font-semibold text-foreground tracking-tight">
+        <h4 className="font-display text-sm font-semibold text-foreground tracking-tight">
           {toast.title}
         </h4>
-        <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           {toast.message}
         </p>
         {auctionId && (
           <Link
             href={`/auctions/${auctionId}`}
             onClick={onDismiss}
-            className="inline-block pt-1 text-xs text-yellow-800 dark:text-orange-200 hover:underline font-medium"
+            className="inline-block pt-1 text-xs text-yellow-800 dark:text-orange-100 hover:underline font-medium"
           >
             View auction &rarr;
           </Link>
         )}
       </div>
       <button
+        type="button"
         onClick={onDismiss}
-        className="text-neutral-400 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+        className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
         aria-label="Dismiss toast"
       >
         <X className="size-4" />

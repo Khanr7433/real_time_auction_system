@@ -7,13 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { MenuToggle } from "@/components/menu-toggle";
 import {
   Gavel,
   User as UserIcon,
   Shield,
-  Menu,
-  X,
   LogOut,
   LayoutDashboard,
   Bell,
@@ -23,7 +22,15 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { socket } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -70,20 +77,26 @@ export function Navbar() {
   }, [socket, isAuthenticated]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/70 dark:bg-black/60 backdrop-blur-md transition-colors">
+    <header
+      className={`sticky top-0 z-40 w-full border-b transition-colors duration-200 ${
+        scrolled || mobileMenuOpen
+          ? "border-border/80 bg-background/80 backdrop-blur-md"
+          : "border-transparent bg-transparent"
+      }`}
+    >
       <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         {/* Brand / Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <div className="size-8 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-bold">
             <Gavel className="size-4.5" />
           </div>
-          <span className="font-montserrat font-bold text-lg tracking-tight text-foreground">
+          <span className="font-brand font-bold text-lg tracking-tight text-foreground">
             Bid<span className="text-yellow-800 dark:text-orange-100">Now</span>
           </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-6 text-sm font-medium text-neutral-600 dark:text-neutral-400">
           <Link
             href="/auctions"
             className="hover:text-foreground transition-colors"
@@ -102,7 +115,7 @@ export function Navbar() {
           {isAuthenticated && user?.role === "admin" && (
             <Link
               href="/admin"
-              className="text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-1"
+              className="text-yellow-800 dark:text-orange-100 hover:opacity-80 transition-opacity flex items-center gap-1"
             >
               <Shield className="size-4" />
               Admin
@@ -118,6 +131,7 @@ export function Navbar() {
               <Link
                 href="/dashboard/notifications"
                 className="p-2 rounded-lg text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors relative"
+                aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
                 title="Notifications"
               >
                 <Bell className="size-4.5" />
@@ -144,6 +158,7 @@ export function Navbar() {
                 </span>
               </Link>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => logout()}
@@ -155,16 +170,12 @@ export function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign in
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="solid" size="sm">
-                  Register
-                </Button>
-              </Link>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/register">Register</Link>
+              </Button>
             </div>
           )}
         </div>
@@ -172,33 +183,22 @@ export function Navbar() {
         {/* Mobile menu trigger */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeSwitcher />
-          <button
-            className="p-2 text-neutral-600 dark:text-neutral-300 cursor-pointer"
+          <MenuToggle
+            open={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <X className="size-5" />
-            ) : (
-              <Menu className="size-5" />
-            )}
-          </button>
+          />
         </div>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-neutral-200 dark:border-neutral-800 bg-background px-4 py-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800 text-xs font-medium text-neutral-500">
-            <span>Interface theme</span>
-            <ThemeSwitcher />
-          </div>
+        <nav aria-label="Mobile navigation" className="md:hidden border-b border-border bg-background px-4 py-4 space-y-3">
           <Link
             href="/auctions"
             className="block text-sm font-medium py-1.5 text-foreground"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Browse Auctions
+            Browse auctions
           </Link>
           {isAuthenticated && (
             <>
@@ -234,14 +234,15 @@ export function Navbar() {
               {user?.role === "admin" && (
                 <Link
                   href="/admin"
-                  className="block text-sm font-medium py-1.5 text-amber-500"
+                  className="block text-sm font-medium py-1.5 text-yellow-800 dark:text-orange-100"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Admin Panel
+                  Admin panel
                 </Link>
               )}
               <button
-                className="w-full text-left text-sm font-medium py-1.5 text-red-500 flex items-center gap-2"
+                type="button"
+                className="w-full text-left text-sm font-medium py-1.5 text-red-500 flex items-center gap-2 cursor-pointer"
                 onClick={() => {
                   logout();
                   setMobileMenuOpen(false);
@@ -254,19 +255,19 @@ export function Navbar() {
           )}
           {!isAuthenticated && (
             <div className="pt-2 flex flex-col gap-2">
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" className="w-full justify-center">
+              <Button asChild variant="ghost" className="w-full justify-center">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                   Sign in
-                </Button>
-              </Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full justify-center">
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-center">
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
                   Create account
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           )}
-        </div>
+        </nav>
       )}
     </header>
   );
