@@ -1,17 +1,31 @@
 import { Auction } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
+import User from '../models/User.js';
 import notificationService from '../services/notification.service.js';
+import { isTokenInvalidated } from '../utils/token.js';
+import { isValidObjectId, maskDisplayName } from '../utils/validation.js';
+
+const BID_COOLDOWN_MS = 500;
+const MAX_BID_AMOUNT = 1_000_000_000;
 
 // In-memory rate limiting map: userId -> lastBidTimestamp (500ms cooldown)
 const userLastBidMap = new Map();
+
+function pruneUserLastBidMap(nowMs) {
+  for (const [uid, ts] of userLastBidMap.entries()) {
+    if (nowMs - ts >= BID_COOLDOWN_MS) {
+      userLastBidMap.delete(uid);
+    }
+  }
+}
 
 export function registerBiddingHandlers(io, socket) {
   // Join specific auction room
   socket.on('join_auction', async (data) => {
     try {
       const auctionId = typeof data === 'object' ? data?.auctionId : data;
-      if (!auctionId) {
-        return socket.emit('error', { message: 'auctionId is required to join an auction room' });
+      if (!isValidObjectId(auctionId)) {
+        return socket.emit('error', { message: 'Valid auctionId is required to join an auction room' });
       }
 
       const auction = await Auction.findById(auctionId).lean();
@@ -22,9 +36,8 @@ export function registerBiddingHandlers(io, socket) {
       const roomName = `auction:${auctionId}`;
       socket.join(roomName);
 
-      const secondsLeft = Math.max(0, Math.floor((new Date(auction.endTime).getTime() - Date.now()) / 1000));
+      const secondsLeft = Math.max(0, Math.ceil((new Date(auction.endTime).getTime() - Date.now()) / 1000));
 
-      // Emit current bid state and remaining time back to the joining client
       socket.emit('auction_state', {
         auctionId: auction._id.toString(),
         currentBid: auction.currentBid,
@@ -35,7 +48,6 @@ export function registerBiddingHandlers(io, socket) {
         secondsLeft,
       });
 
-      // Also emit time_remaining per design.md D6
       socket.emit('time_remaining', {
         auctionId: auction._id.toString(),
         secondsLeft,
@@ -53,7 +65,7 @@ export function registerBiddingHandlers(io, socket) {
         const roomName = `auction:${auctionId}`;
         socket.leave(roomName);
       }
-    } catch (err) {
+    } catch {
       // Ignore leave error
     }
   });
@@ -61,72 +73,103 @@ export function registerBiddingHandlers(io, socket) {
   // Place a bid with atomic OCC validation and anti-sniping extension
   socket.on('place_bid', async (data) => {
     try {
-      // 1. Guard against unauthenticated guest sockets
       if (!socket.userId || !socket.user) {
         return socket.emit('bid_rejected', {
           reason: 'Authentication required. Please sign in to place live bids.',
         });
       }
 
+      if (socket.handshakeToken && isTokenInvalidated(socket.handshakeToken)) {
+        socket.disconnect(true);
+        return socket.emit('bid_rejected', {
+          reason: 'Session has been invalidated. Please sign in again.',
+        });
+      }
+
+      // Re-verify live suspension & tokenVersion state on active sockets
+      const liveUser = await User.findById(socket.userId).select('isSuspended tokenVersion').lean();
+      if (!liveUser || liveUser.isSuspended) {
+        socket.disconnect(true);
+        return socket.emit('bid_rejected', {
+          reason: 'Your account is suspended or unavailable.',
+        });
+      }
+
+      const socketVersion = typeof socket.user.tokenVersion === 'number' ? socket.user.tokenVersion : 0;
+      const dbVersion = typeof liveUser.tokenVersion === 'number' ? liveUser.tokenVersion : 0;
+      if (socketVersion !== dbVersion) {
+        socket.disconnect(true);
+        return socket.emit('bid_rejected', {
+          reason: 'Session expired. Please sign in again.',
+        });
+      }
+
       const { auctionId, amount } = data || {};
       const numericAmount = Number(amount);
 
-      if (!auctionId || isNaN(numericAmount) || numericAmount <= 0) {
+      if (
+        !isValidObjectId(auctionId) ||
+        !Number.isFinite(numericAmount) ||
+        numericAmount <= 0 ||
+        numericAmount > MAX_BID_AMOUNT ||
+        Math.round(numericAmount * 100) !== numericAmount * 100
+      ) {
         return socket.emit('bid_rejected', {
-          reason: 'Valid auctionId and positive bid amount are required',
+          reason: 'Valid auctionId and finite bid amount (max 2 decimals) are required',
         });
       }
 
       const now = new Date();
+      const nowMs = now.getTime();
+      pruneUserLastBidMap(nowMs);
 
-      // 2. Throttle consecutive bids from the same user (500ms debounce)
       const lastBidTime = userLastBidMap.get(socket.userId) || 0;
-      if (now.getTime() - lastBidTime < 500) {
+      if (nowMs - lastBidTime < BID_COOLDOWN_MS) {
         return socket.emit('bid_rejected', {
           reason: 'Please wait a moment before submitting another bid.',
         });
       }
-      userLastBidMap.set(socket.userId, now.getTime());
+      userLastBidMap.set(socket.userId, nowMs);
 
-      // Read current state of auction
       const currentAuction = await Auction.findById(auctionId);
       if (!currentAuction) {
         return socket.emit('bid_rejected', { reason: 'Auction not found' });
       }
 
-      // Check seller cannot bid on their own auction
       if (currentAuction.sellerId.toString() === socket.userId) {
         return socket.emit('bid_rejected', {
           reason: 'You cannot bid on your own auction listing',
         });
       }
 
-      // Check status
-      if (currentAuction.status !== 'live' || new Date(currentAuction.endTime).getTime() <= now.getTime()) {
-        return socket.emit('bid_rejected', { reason: 'Auction has ended' });
-      }
-
-      // Check bid amount is strictly greater than currentBid
-      if (numericAmount <= currentAuction.currentBid) {
+      if (currentAuction.highestBidderId && currentAuction.highestBidderId.toString() === socket.userId) {
         return socket.emit('bid_rejected', {
-          reason: `Bid must be greater than current bid ($${currentAuction.currentBid.toLocaleString()})`,
+          reason: 'You are already the highest bidder on this auction.',
         });
       }
 
-      // Check Anti-sniping: if bid placed with <= 30 seconds remaining, extend by 60 seconds
-      const msRemaining = new Date(currentAuction.endTime).getTime() - now.getTime();
-      const isAntiSnipingActive = msRemaining <= 30 * 1000 && msRemaining > 0;
-      let newEndTime = currentAuction.endTime;
-
-      if (isAntiSnipingActive) {
-        newEndTime = new Date(new Date(currentAuction.endTime).getTime() + 60 * 1000);
+      if (currentAuction.status !== 'live' || new Date(currentAuction.endTime).getTime() <= nowMs) {
+        return socket.emit('bid_rejected', { reason: 'Auction has ended' });
       }
 
-      // Atomic findOneAndUpdate with Optimistic Concurrency Control (OCC)
+      const minRequiredBid = currentAuction.currentBid + 1;
+      if (numericAmount < minRequiredBid) {
+        return socket.emit('bid_rejected', {
+          reason: `Bid must be at least $${minRequiredBid.toLocaleString()}`,
+        });
+      }
+
+      const msRemaining = new Date(currentAuction.endTime).getTime() - nowMs;
+      const isAntiSnipingActive = msRemaining <= 30 * 1000 && msRemaining > 0;
+      const newEndTime = isAntiSnipingActive
+        ? new Date(new Date(currentAuction.endTime).getTime() + 60 * 1000)
+        : currentAuction.endTime;
+
       const updateFilter = {
         _id: auctionId,
         version: currentAuction.version,
-        currentBid: { $lt: numericAmount },
+        currentBid: { $lte: numericAmount - 1 },
+        highestBidderId: { $ne: socket.userId },
         status: 'live',
         endTime: { $gt: now },
       };
@@ -148,12 +191,16 @@ export function registerBiddingHandlers(io, socket) {
       });
 
       if (!updatedAuction) {
-        // Atomic OCC conflict or conditions no longer met
         const latestAuction = await Auction.findById(auctionId);
-        if (!latestAuction || latestAuction.status !== 'live' || new Date(latestAuction.endTime).getTime() <= now.getTime()) {
+        if (!latestAuction || latestAuction.status !== 'live' || new Date(latestAuction.endTime).getTime() <= nowMs) {
           return socket.emit('bid_rejected', { reason: 'Auction has ended' });
         }
-        if (numericAmount <= latestAuction.currentBid) {
+        if (latestAuction.highestBidderId && latestAuction.highestBidderId.toString() === socket.userId) {
+          return socket.emit('bid_rejected', {
+            reason: 'You are already the highest bidder on this auction.',
+          });
+        }
+        if (numericAmount < latestAuction.currentBid + 1) {
           return socket.emit('bid_rejected', {
             reason: `Outbid! Current highest bid is now $${latestAuction.currentBid.toLocaleString()}`,
           });
@@ -163,14 +210,34 @@ export function registerBiddingHandlers(io, socket) {
         });
       }
 
-      // Insert record into bids collection
-      await Bid.create({
-        auctionId,
-        bidderId: socket.userId,
-        amount: numericAmount,
-      });
+      try {
+        await Bid.create({
+          auctionId,
+          bidderId: socket.userId,
+          amount: numericAmount,
+        });
+      } catch (bidErr) {
+        // Roll back auction state if Bid ledger insert fails
+        await Auction.findOneAndUpdate(
+          { _id: auctionId, version: updatedAuction.version },
+          {
+            $set: {
+              currentBid: currentAuction.currentBid,
+              highestBidderId: currentAuction.highestBidderId,
+              endTime: currentAuction.endTime,
+            },
+            $inc: {
+              version: 1,
+              bidCount: -1,
+            },
+          }
+        ).catch(() => {});
 
-      // Send outbid notification to previous highest bidder if one exists and is different from current bidder
+        return socket.emit('bid_rejected', {
+          reason: 'Failed to record bid. Please try again.',
+        });
+      }
+
       const previousHighestBidderId = currentAuction.highestBidderId;
       if (previousHighestBidderId && previousHighestBidderId.toString() !== socket.userId) {
         notificationService
@@ -188,21 +255,19 @@ export function registerBiddingHandlers(io, socket) {
           .catch((err) => console.error('Failed to send outbid notification:', err.message));
       }
 
-      const secondsLeft = Math.max(0, Math.floor((new Date(updatedAuction.endTime).getTime() - Date.now()) / 1000));
+      const secondsLeft = Math.max(0, Math.ceil((new Date(updatedAuction.endTime).getTime() - Date.now()) / 1000));
       const roomName = `auction:${auctionId}`;
 
-      // Emit bid_updated to everyone in the room
       io.to(roomName).emit('bid_updated', {
         auctionId: updatedAuction._id.toString(),
         currentBid: updatedAuction.currentBid,
         highestBidderId: socket.userId,
-        bidderName: socket.user?.displayName || 'Bidder',
+        bidderName: maskDisplayName(socket.user?.displayName),
         bidCount: updatedAuction.bidCount,
         endTime: updatedAuction.endTime,
         secondsLeft,
       });
 
-      // If anti-sniping extended the timer, broadcast updated time_remaining
       if (isAntiSnipingActive) {
         io.to(roomName).emit('time_remaining', {
           auctionId: updatedAuction._id.toString(),
@@ -218,4 +283,5 @@ export function registerBiddingHandlers(io, socket) {
   });
 }
 
+export { userLastBidMap };
 export default registerBiddingHandlers;
