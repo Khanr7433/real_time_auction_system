@@ -99,15 +99,15 @@ export default function ProfilePage() {
           <div className="size-20 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-2xl font-bold text-foreground border border-neutral-300 dark:border-neutral-700 overflow-hidden">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatar} alt={user.displayName} className="size-full object-cover" />
+              <img src={avatar} alt={user.displayName || user.email || 'User avatar'} className="size-full object-cover" />
             ) : (
-              user.displayName[0]?.toUpperCase() || <User className="size-8" />
+              user.displayName?.trim()?.[0]?.toUpperCase() || <User className="size-8" />
             )}
           </div>
 
           <div className="space-y-1 w-full">
-            <h2 className="font-montserrat font-semibold text-lg text-foreground truncate">{user.displayName}</h2>
-            <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+            <h2 className="font-montserrat font-semibold text-lg text-foreground truncate">{user.displayName || user.email || 'User'}</h2>
+            <p className="text-xs text-neutral-500 truncate">{user.email ?? ''}</p>
           </div>
 
           <div className="w-full pt-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2 text-left text-xs">
@@ -166,7 +166,7 @@ export default function ProfilePage() {
                 </label>
                 <Input
                   type="email"
-                  value={user.email}
+                  value={user.email ?? ''}
                   disabled
                   className="opacity-60 cursor-not-allowed"
                 />
