@@ -35,13 +35,20 @@ export function setupSocketAuth(io) {
         return next(new Error('Authentication error: User not found'));
       }
 
+      const currentVersion = typeof user.tokenVersion === 'number' ? user.tokenVersion : 0;
+      const tokenVersion = typeof decoded.tokenVersion === 'number' ? decoded.tokenVersion : 0;
+      if (tokenVersion !== currentVersion) {
+        return next(new Error('Authentication error: Session invalidated'));
+      }
+
       if (user.isSuspended) {
         return next(new Error('Authentication error: User account is suspended'));
       }
 
-      // Attach authenticated user to socket instance
+      // Attach authenticated user and handshake token to socket instance
       socket.user = user;
       socket.userId = user._id.toString();
+      socket.handshakeToken = token;
 
       next();
     } catch (err) {

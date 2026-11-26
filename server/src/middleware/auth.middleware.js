@@ -29,6 +29,12 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: 'User associated with token no longer exists' });
     }
 
+    const currentVersion = typeof user.tokenVersion === 'number' ? user.tokenVersion : 0;
+    const tokenVersion = typeof decoded.tokenVersion === 'number' ? decoded.tokenVersion : 0;
+    if (tokenVersion !== currentVersion) {
+      return res.status(401).json({ error: 'Session has expired. Please log in again.' });
+    }
+
     if (user.isSuspended) {
       return res.status(403).json({ error: 'User account has been suspended' });
     }
