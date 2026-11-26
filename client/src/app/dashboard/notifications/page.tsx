@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
+import { Segmented } from '@/components/ui/segmented';
 import {
   Bell,
   CheckCircle2,
@@ -190,30 +191,30 @@ export default function NotificationsPage() {
     return (
       <div className="max-w-md mx-auto my-16 p-8 text-center space-y-4 card-chai">
         <Bell className="size-10 mx-auto text-yellow-800 dark:text-orange-200" />
-        <h2 className="font-montserrat text-xl font-bold text-foreground">Sign In Required</h2>
+        <h1 className="text-xl font-medium text-foreground">Sign in required</h1>
         <p className="text-xs text-neutral-500">
           Please sign in to access your notification history and auction alerts.
         </p>
-        <Link href="/login" className="block pt-2">
-          <Button variant="solid" size="md" className="w-full">
-            Sign In
+        <div className="pt-2">
+          <Button asChild variant="solid" size="md" className="w-full">
+            <Link href="/login">Sign in</Link>
           </Button>
-        </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-8 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 sm:p-12 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-montserrat text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-2xl font-medium tracking-tight text-foreground">
               Notifications
             </h1>
             {unreadCount > 0 && (
-              <Chip tone="warning">
+              <Chip tone="special">
                 {unreadCount} unread
               </Chip>
             )}
@@ -226,6 +227,7 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={handleMarkAllAsRead}
@@ -238,33 +240,19 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-800/80 pb-3">
-        <button
-          onClick={() => {
-            setFilter('all');
+      <div className="pb-1">
+        <Segmented<'all' | 'unread'>
+          label="Notification filter"
+          options={[
+            { value: 'all', label: `All (${total})` },
+            { value: 'unread', label: `Unread only (${unreadCount})` },
+          ]}
+          value={filter}
+          onChange={(val) => {
+            setFilter(val);
             setPage(1);
           }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-            filter === 'all'
-              ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-black'
-              : 'text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
-          }`}
-        >
-          All ({total})
-        </button>
-        <button
-          onClick={() => {
-            setFilter('unread');
-            setPage(1);
-          }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-            filter === 'unread'
-              ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-black'
-              : 'text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
-          }`}
-        >
-          Unread only ({unreadCount})
-        </button>
+        />
       </div>
 
       {/* Error State */}
@@ -285,21 +273,21 @@ export default function NotificationsPage() {
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <Card className="text-center py-16 space-y-3">
+        <Card className="text-center py-16 px-6 space-y-3 sm:opacity-100">
           <Sparkles className="size-8 mx-auto text-neutral-400" />
-          <h3 className="font-montserrat text-sm font-semibold text-foreground">
+          <h2 className="font-display text-sm font-semibold text-foreground">
             No notifications yet
-          </h3>
+          </h2>
           <p className="text-xs text-neutral-500 max-w-sm mx-auto">
             {filter === 'unread'
               ? 'You have caught up with all your notifications!'
               : 'When you place bids or list items, updates will appear here.'}
           </p>
-          <Link href="/auctions" className="inline-block pt-2">
-            <Button variant="soft" size="sm">
-              Explore live auctions
+          <div className="pt-2">
+            <Button asChild variant="soft" size="sm">
+              <Link href="/auctions">Explore live auctions</Link>
             </Button>
-          </Link>
+          </div>
         </Card>
       ) : (
         <div className="space-y-2.5">
@@ -310,10 +298,10 @@ export default function NotificationsPage() {
               <div
                 key={itemKey}
                 onClick={() => !notif.isRead && handleMarkAsRead(notif)}
-                className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                className={`card-chai group relative p-4 transition-all duration-200 cursor-pointer ${
                   notif.isRead
-                    ? 'border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/50 dark:bg-neutral-900/30 opacity-75 hover:opacity-100'
-                    : 'border-yellow-800/30 dark:border-orange-200/25 bg-neutral-100/60 dark:bg-neutral-900/70'
+                    ? 'opacity-75 hover:opacity-100'
+                    : 'border-brand/30'
                 }`}
               >
                 <div className="flex items-start gap-3.5">
@@ -323,13 +311,13 @@ export default function NotificationsPage() {
 
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h4
+                      <h3
                         className={`text-sm tracking-tight truncate ${
-                          notif.isRead ? 'font-medium text-neutral-700 dark:text-neutral-300' : 'font-semibold text-foreground font-montserrat'
+                          notif.isRead ? 'font-medium text-neutral-700 dark:text-neutral-300' : 'font-semibold text-foreground font-display'
                         }`}
                       >
                         {notif.title || 'Notification'}
-                      </h4>
+                      </h3>
                       <span className="text-[11px] text-neutral-500 shrink-0">
                         {formatRelativeTime(notif.createdAt)}
                       </span>
@@ -357,7 +345,9 @@ export default function NotificationsPage() {
 
                   {!notif.isRead && (
                     <button
+                      type="button"
                       onClick={(e) => handleMarkAsRead(notif, e)}
+                      aria-label="Mark notification as read"
                       title="Mark as read"
                       className="size-2 rounded-full bg-foreground dark:bg-white shrink-0 mt-2 hover:scale-125 transition-transform cursor-pointer"
                     />

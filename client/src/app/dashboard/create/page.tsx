@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert } from '@/components/ui/alert';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { ArrowLeft, Upload, AlertCircle } from 'lucide-react';
 
 const CATEGORIES = [
@@ -152,7 +152,7 @@ export default function CreateAuctionPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+    <div className="max-w-3xl mx-auto p-6 sm:p-12 space-y-6">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
@@ -160,148 +160,157 @@ export default function CreateAuctionPage() {
         <ArrowLeft className="size-3.5" /> Back to dashboard
       </Link>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Create auction listing</CardTitle>
-          <CardDescription>
-            Publish a product for real-time bidding with <span className="highlight">automatic anti-sniping protection</span>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-6">
-              <Alert tone="danger">{error}</Alert>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Title */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                Product title
-              </label>
-              <Input
-                type="text"
-                placeholder="e.g. Vintage 1984 Mechanical Chronograph Watch"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={120}
-                required
-              />
-            </div>
-
-            {/* Category & Condition */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+      <Card className="sm:opacity-100">
+        <CardBody className="p-6 sm:p-8 gap-6">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-medium tracking-tight text-foreground">Create auction listing</h1>
+            <p className="text-sm text-muted-foreground">
+              Publish a product for real-time bidding with <span className="highlight">automatic anti-sniping protection</span>.
+            </p>
+          </div>
+          <div>
+            {error && (
+              <div className="mb-6">
+                <Alert tone="danger">{error}</Alert>
               </div>
+            )}
 
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Title */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Item condition
-                </label>
-                <select
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
-                >
-                  {CONDITIONS.map((cond) => (
-                    <option key={cond.value} value={cond.value}>
-                      {cond.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                Detailed description
-              </label>
-              <Textarea
-                rows={4}
-                placeholder="Provide accurate details about condition, authenticity, specifications, and included accessories..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={2000}
-                required
-              />
-            </div>
-
-            {/* Pricing and End Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Starting bid ($)
+                <label htmlFor="create-title" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Product title
                 </label>
                 <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="e.g. 50"
-                  value={startingBid}
-                  onChange={(e) => setStartingBid(e.target.value)}
+                  id="create-title"
+                  type="text"
+                  placeholder="e.g. Vintage 1984 Mechanical Chronograph Watch"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={120}
                   required
                 />
               </div>
 
+              {/* Category & Condition */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="create-category" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Category
+                  </label>
+                  <select
+                    id="create-category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="create-condition" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Item condition
+                  </label>
+                  <select
+                    id="create-condition"
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value)}
+                    className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
+                  >
+                    {CONDITIONS.map((cond) => (
+                      <option key={cond.value} value={cond.value}>
+                        {cond.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Auction end date and time
+                <label htmlFor="create-description" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Detailed description
                 </label>
-                <Input
-                  type="datetime-local"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                <Textarea
+                  id="create-description"
+                  rows={4}
+                  placeholder="Provide accurate details about condition, authenticity, specifications, and included accessories..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={2000}
                   required
                 />
               </div>
-            </div>
 
-            {/* Images upload */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
-                <Upload className="size-3.5" /> Product photos (up to 5 images, max 5 MB each)
-              </label>
-              <Input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={handleFileChange}
-                className="cursor-pointer text-xs"
-              />
-              {selectedFiles.length > 0 && (
-                <p className="text-[11px] text-neutral-500 pt-1">
-                  Selected {selectedFiles.length} file(s): {selectedFiles.map((f) => f.name).join(', ')}
-                </p>
-              )}
-            </div>
+              {/* Pricing and End Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="create-starting-bid" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Starting bid ($)
+                  </label>
+                  <Input
+                    id="create-starting-bid"
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="e.g. 50"
+                    value={startingBid}
+                    onChange={(e) => setStartingBid(e.target.value)}
+                    required
+                  />
+                </div>
 
-            <Button
-              type="submit"
-              variant="solid"
-              size="lg"
-              className="w-full mt-4"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Publishing listing...' : 'Publish auction'}
-            </Button>
-          </form>
-        </CardContent>
+                <div className="space-y-1.5">
+                  <label htmlFor="create-end-time" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Auction end date and time
+                  </label>
+                  <Input
+                    id="create-end-time"
+                    type="datetime-local"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Images upload */}
+              <div className="space-y-1.5">
+                <label htmlFor="create-images" className="text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                  <Upload className="size-3.5" /> Product photos (up to 5 images, max 5 MB each)
+                </label>
+                <Input
+                  id="create-images"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleFileChange}
+                  className="cursor-pointer text-xs"
+                />
+                {selectedFiles.length > 0 && (
+                  <p className="text-[11px] text-neutral-500 pt-1">
+                    Selected {selectedFiles.length} file(s): {selectedFiles.map((f) => f.name).join(', ')}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                variant="solid"
+                size="lg"
+                className="w-full mt-4"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Publishing listing...' : 'Publish auction'}
+              </Button>
+            </form>
+          </div>
+        </CardBody>
       </Card>
     </div>
   );

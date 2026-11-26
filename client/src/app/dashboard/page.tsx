@@ -166,25 +166,25 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
+    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-8">
       {/* Top Banner & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">Seller dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight">Seller dashboard</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Track your listings, active bidding activity, and <span className="highlight">won auctions</span>.
           </p>
         </div>
 
-        <Link href="/dashboard/create">
-          <Button variant="solid" size="md">
+        <Button asChild variant="solid" size="md">
+          <Link href="/dashboard/create">
             <Plus className="size-4" /> Create new listing
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       {actionError && (
-        <Alert tone="danger" title="Error" onDismiss={() => setActionError(null)}>
+        <Alert tone="danger" title="Error">
           {actionError}
         </Alert>
       )}
@@ -192,10 +192,11 @@ export default function SellerDashboardPage() {
       {/* Segmented Navigation */}
       <div className="overflow-x-auto pb-1 scrollbar-none">
         <Segmented<'listings' | 'bids' | 'won'>
+          label="Dashboard sections"
           options={[
-            { value: 'listings', label: 'My Listings', count: myListings.length },
-            { value: 'bids', label: 'My Bids', count: myBids.length },
-            { value: 'won', label: 'Won Auctions', count: wonAuctions.length },
+            { value: 'listings', label: `My listings (${myListings.length})` },
+            { value: 'bids', label: `My bids (${myBids.length})` },
+            { value: 'won', label: `Won auctions (${wonAuctions.length})` },
           ]}
           value={activeTab}
           onChange={setActiveTab}
@@ -208,6 +209,7 @@ export default function SellerDashboardPage() {
           <div className="flex items-center justify-between text-xs text-neutral-500">
             <span>Manage your auction products</span>
             <button
+              type="button"
               onClick={loadMyListings}
               className="flex items-center gap-1 hover:text-foreground cursor-pointer"
             >
@@ -222,16 +224,16 @@ export default function SellerDashboardPage() {
               ))}
             </div>
           ) : myListings.length === 0 ? (
-            <Card className="text-center py-12 space-y-3">
+            <Card className="text-center py-12 px-6 space-y-3 sm:opacity-100">
               <p className="text-base font-medium text-foreground">You have not created any listings yet</p>
               <p className="text-xs text-neutral-500 max-w-sm mx-auto">
                 List an item for auction to start receiving bids in real-time.
               </p>
-              <Link href="/dashboard/create">
-                <Button variant="soft" size="sm">
-                  Create your first listing
+              <div>
+                <Button asChild variant="soft" size="sm">
+                  <Link href="/dashboard/create">Create your first listing</Link>
                 </Button>
-              </Link>
+              </div>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -261,7 +263,7 @@ export default function SellerDashboardPage() {
                       <div className="space-y-1">
                         <Link
                           href={`/auctions/${listing._id}`}
-                          className="font-montserrat font-semibold text-sm text-foreground hover:text-brand"
+                          className="font-display font-semibold text-sm text-foreground hover:text-brand"
                         >
                           {listing.title}
                         </Link>
@@ -279,11 +281,11 @@ export default function SellerDashboardPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 self-end sm:self-center">
-                      <Link href={`/auctions/${listing._id}`}>
-                        <Button variant="ghost" size="sm" title="View listing">
+                      <Button asChild variant="ghost" size="sm" title="View listing">
+                        <Link href={`/auctions/${listing._id}`} aria-label={`View ${listing.title}`}>
                           <Eye className="size-4" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
 
                       {isLocked ? (
                         <Chip
@@ -294,15 +296,17 @@ export default function SellerDashboardPage() {
                         </Chip>
                       ) : (
                         <>
-                          <Link href={`/dashboard/edit/${listing._id}`}>
-                            <Button variant="outline" size="sm" title="Edit listing">
+                          <Button asChild variant="outline" size="sm" title="Edit listing">
+                            <Link href={`/dashboard/edit/${listing._id}`} aria-label={`Edit ${listing.title}`}>
                               <Edit className="size-4" />
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                           <Button
-                            variant="danger"
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => setDeleteTarget({ id: listing._id, title: listing.title })}
+                            aria-label={`Delete ${listing.title}`}
                             title="Delete listing"
                           >
                             <Trash2 className="size-4" />
@@ -324,6 +328,7 @@ export default function SellerDashboardPage() {
           <div className="flex items-center justify-between text-xs text-neutral-500">
             <span>Auctions you have actively placed bids on</span>
             <button
+              type="button"
               onClick={loadMyBids}
               className="flex items-center gap-1 hover:text-foreground cursor-pointer"
             >
@@ -338,16 +343,16 @@ export default function SellerDashboardPage() {
               ))}
             </div>
           ) : myBids.length === 0 ? (
-            <Card className="text-center py-12 space-y-3">
+            <Card className="text-center py-12 px-6 space-y-3 sm:opacity-100">
               <p className="text-base font-medium text-foreground">You have not placed bids on any auctions yet</p>
               <p className="text-xs text-neutral-500 max-w-sm mx-auto">
                 Explore active auctions and place bids in real-time.
               </p>
-              <Link href="/auctions">
-                <Button variant="soft" size="sm">
-                  Browse live auctions
+              <div>
+                <Button asChild variant="soft" size="sm">
+                  <Link href="/auctions">Browse live auctions</Link>
                 </Button>
-              </Link>
+              </div>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -360,11 +365,11 @@ export default function SellerDashboardPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/auctions/${item.auction._id}`}
-                        className="font-montserrat font-semibold text-sm text-foreground hover:text-brand"
+                        className="font-display font-semibold text-sm text-foreground hover:text-brand"
                       >
                         {item.auction.title}
                       </Link>
-                      <Chip tone={item.isWinning ? 'success' : 'warning'} dot>
+                      <Chip tone={item.isWinning ? 'success' : 'danger'}>
                         {item.isWinning ? 'Winning' : 'Outbid'}
                       </Chip>
                     </div>
@@ -379,11 +384,9 @@ export default function SellerDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end sm:self-center">
-                    <Link href={`/auctions/${item.auction._id}`}>
-                      <Button variant="outline" size="sm">
-                        View live room
-                      </Button>
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/auctions/${item.auction._id}`}>View live room</Link>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -398,6 +401,7 @@ export default function SellerDashboardPage() {
           <div className="flex items-center justify-between text-xs text-neutral-500">
             <span>Auctions you have won</span>
             <button
+              type="button"
               onClick={loadWonAuctions}
               className="flex items-center gap-1 hover:text-foreground cursor-pointer"
             >
@@ -412,16 +416,16 @@ export default function SellerDashboardPage() {
               ))}
             </div>
           ) : wonAuctions.length === 0 ? (
-            <Card className="text-center py-12 space-y-3">
+            <Card className="text-center py-12 px-6 space-y-3 sm:opacity-100">
               <p className="text-base font-medium text-foreground">No won auctions yet</p>
               <p className="text-xs text-neutral-500 max-w-sm mx-auto">
                 Keep an eye on your active bids. When an auction countdown expires while you hold the highest bid, your won items will appear here!
               </p>
-              <Link href="/auctions">
-                <Button variant="soft" size="sm">
-                  Find auctions to bid
+              <div>
+                <Button asChild variant="soft" size="sm">
+                  <Link href="/auctions">Find auctions to bid</Link>
                 </Button>
-              </Link>
+              </div>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -434,11 +438,11 @@ export default function SellerDashboardPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/auctions/${won._id}`}
-                        className="font-montserrat font-semibold text-sm text-foreground hover:text-brand"
+                        className="font-display font-semibold text-sm text-foreground hover:text-brand"
                       >
                         {won.title}
                       </Link>
-                      <Chip tone="success" dot>
+                      <Chip tone="success">
                         <Trophy className="size-3" /> Won
                       </Chip>
                     </div>
@@ -451,11 +455,9 @@ export default function SellerDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end sm:self-center">
-                    <Link href={`/auctions/${won._id}`}>
-                      <Button variant="outline" size="sm">
-                        View item details
-                      </Button>
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/auctions/${won._id}`}>View item details</Link>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -468,14 +470,15 @@ export default function SellerDashboardPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete listing"
-        description={`Are you sure you want to permanently delete "${deleteTarget?.title}"? This action cannot be reversed.`}
         confirmLabel="Delete listing"
         cancelLabel="Keep listing"
         tone="danger"
         busy={isDeleting}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
+      >
+        Are you sure you want to permanently delete &quot;{deleteTarget?.title}&quot;? This action cannot be reversed.
+      </ConfirmDialog>
     </div>
   );
 }

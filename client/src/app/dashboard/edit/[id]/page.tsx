@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { ArrowLeft, Lock, AlertCircle } from 'lucide-react';
 
 const CATEGORIES = [
@@ -157,28 +157,28 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
 
   if (!auction) {
     return (
-      <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+      <div className="max-w-3xl mx-auto p-6 sm:p-12 space-y-6">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
         >
           <ArrowLeft className="size-3.5" /> Back to dashboard
         </Link>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Listing not found</CardTitle>
-            <CardDescription>
-              We could not load this auction listing. It may have been removed or the ID is invalid.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Card className="sm:opacity-100">
+          <CardBody className="p-6 space-y-4">
+            <div className="space-y-1">
+              <h1 className="text-xl font-medium text-foreground">Listing not found</h1>
+              <p className="text-sm text-muted-foreground">
+                We could not load this auction listing. It may have been removed or the ID is invalid.
+              </p>
+            </div>
             {error && <Alert tone="danger">{error}</Alert>}
-            <Link href="/dashboard">
-              <Button variant="outline" size="sm">
-                Return to dashboard
+            <div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard">Return to dashboard</Link>
               </Button>
-            </Link>
-          </CardContent>
+            </div>
+          </CardBody>
         </Card>
       </div>
     );
@@ -186,34 +186,34 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
 
   if (!isOwner) {
     return (
-      <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+      <div className="max-w-3xl mx-auto p-6 sm:p-12 space-y-6">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
         >
           <ArrowLeft className="size-3.5" /> Back to dashboard
         </Link>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Access denied</CardTitle>
-            <CardDescription>
-              Only the seller who created this auction can edit its details.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/dashboard">
-              <Button variant="outline" size="sm">
-                Return to dashboard
+        <Card className="sm:opacity-100">
+          <CardBody className="p-6 space-y-4">
+            <div className="space-y-1">
+              <h1 className="text-xl font-medium text-foreground">Access denied</h1>
+              <p className="text-sm text-muted-foreground">
+                Only the seller who created this auction can edit its details.
+              </p>
+            </div>
+            <div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard">Return to dashboard</Link>
               </Button>
-            </Link>
-          </CardContent>
+            </div>
+          </CardBody>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+    <div className="max-w-3xl mx-auto p-6 sm:p-12 space-y-6">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
@@ -221,152 +221,160 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
         <ArrowLeft className="size-3.5" /> Back to dashboard
       </Link>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-semibold">Edit auction listing</CardTitle>
-            {isLocked && (
-              <Chip tone="warning" icon={<Lock className="size-3" />}>
-                Locked
-              </Chip>
+      <Card className="sm:opacity-100">
+        <CardBody className="p-6 sm:p-8 gap-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <h1 className="text-2xl font-medium tracking-tight text-foreground">Edit auction listing</h1>
+              {isLocked && (
+                <Chip tone="danger">
+                  <Lock className="size-3" /> Locked
+                </Chip>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {isLocked
+                ? auction.status !== 'live'
+                  ? `This auction is ${auction.status} and details cannot be modified.`
+                  : 'This auction has received bids and details cannot be modified.'
+                : 'Update auction details prior to receiving any bids.'}
+            </p>
+          </div>
+          <div>
+            {error && (
+              <div className="mb-6">
+                <Alert tone="danger">{error}</Alert>
+              </div>
+            )}
+
+            {isLocked ? (
+              <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-black/30 space-y-3 text-center">
+                <Lock className="size-8 text-neutral-400 mx-auto" />
+                <h2 className="font-display font-semibold text-base text-foreground">
+                  Listing details locked
+                </h2>
+                <p className="text-xs text-neutral-500 max-w-md mx-auto">
+                  {auction.status !== 'live'
+                    ? `Auctions with status "${auction.status}" are closed and cannot be modified.`
+                    : 'Once a valid bid has been placed, auction properties (title, starting price, and duration) cannot be altered to protect the integrity of the active bidding room.'}
+                </p>
+                <div className="pt-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/dashboard">Return to dashboard</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-title" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Product title
+                  </label>
+                  <Input
+                    id="edit-title"
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={120}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-category" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Category
+                    </label>
+                    <select
+                      id="edit-category"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-condition" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Item condition
+                    </label>
+                    <select
+                      id="edit-condition"
+                      value={condition}
+                      onChange={(e) => setCondition(e.target.value)}
+                      className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
+                    >
+                      {CONDITIONS.map((cond) => (
+                        <option key={cond.value} value={cond.value}>
+                          {cond.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-description" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Detailed description
+                  </label>
+                  <Textarea
+                    id="edit-description"
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={2000}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-starting-bid" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Starting bid ($)
+                    </label>
+                    <Input
+                      id="edit-starting-bid"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={startingBid}
+                      onChange={(e) => setStartingBid(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-end-time" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Auction end date and time
+                    </label>
+                    <Input
+                      id="edit-end-time"
+                      type="datetime-local"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="solid"
+                  size="lg"
+                  className="w-full mt-4"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Saving changes...' : 'Save changes'}
+                </Button>
+              </form>
             )}
           </div>
-          <CardDescription>
-            {isLocked
-              ? auction.status !== 'live'
-                ? `This auction is ${auction.status} and details cannot be modified.`
-                : 'This auction has received bids and details cannot be modified.'
-              : 'Update auction details prior to receiving any bids.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-6">
-              <Alert tone="danger">{error}</Alert>
-            </div>
-          )}
-
-          {isLocked ? (
-            <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-black/30 space-y-3 text-center">
-              <Lock className="size-8 text-neutral-400 mx-auto" />
-              <h3 className="font-montserrat font-semibold text-base text-foreground">
-                Listing details locked
-              </h3>
-              <p className="text-xs text-neutral-500 max-w-md mx-auto">
-                {auction.status !== 'live'
-                  ? `Auctions with status "${auction.status}" are closed and cannot be modified.`
-                  : 'Once a valid bid has been placed, auction properties (title, starting price, and duration) cannot be altered to protect the integrity of the active bidding room.'}
-              </p>
-              <Link href="/dashboard">
-                <Button variant="outline" size="sm" className="mt-2">
-                  Return to dashboard
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Product title
-                </label>
-                <Input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={120}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Item condition
-                  </label>
-                  <select
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100"
-                  >
-                    {CONDITIONS.map((cond) => (
-                      <option key={cond.value} value={cond.value}>
-                        {cond.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Detailed description
-                </label>
-                <Textarea
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  maxLength={2000}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Starting bid ($)
-                  </label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={startingBid}
-                    onChange={(e) => setStartingBid(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Auction end date and time
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                variant="solid"
-                size="lg"
-                className="w-full mt-4"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving changes...' : 'Save changes'}
-              </Button>
-            </form>
-          )}
-        </CardContent>
+        </CardBody>
       </Card>
     </div>
   );
