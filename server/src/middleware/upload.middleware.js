@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { cleanupUploadedFiles, hasValidImageMagicBytes } from '../utils/validation.js';
 
 const uploadsDir = path.join(import.meta.dirname, '../../uploads');
 
@@ -61,5 +62,21 @@ export function handleUploadErrors(err, _req, res, next) {
     return res.status(500).json({ error: 'File upload failed' });
   }
   next();
+}
+
+export function validateUploadedImages(req, res, next) {
+  if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+    return next();
+  }
+
+  const allValid = req.files.every((file) => hasValidImageMagicBytes(file.path));
+  if (!allValid) {
+    cleanupUploadedFiles(req.files);
+    return res.status(400).json({
+      error: 'Unsupported or corrupted image file. Only valid JPEG, PNG, and WebP images are allowed.',
+    });
+  }
+
+  return next();
 }
 
