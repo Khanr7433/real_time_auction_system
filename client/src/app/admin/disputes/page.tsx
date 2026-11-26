@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
@@ -16,8 +14,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  User,
-  Gavel,
   ShieldCheck,
   RefreshCw,
   ExternalLink,
@@ -25,7 +21,6 @@ import {
   ChevronRight,
   Filter,
   MessageSquare,
-  FileText,
   Send,
 } from 'lucide-react';
 
@@ -45,10 +40,10 @@ interface DisputeAuction {
 
 interface DisputeItem {
   _id: string;
-  reporterId: DisputeUser;
-  reportedUserId: DisputeUser;
-  auctionId?: DisputeAuction;
-  reason: string;
+  reporterId?: DisputeUser | null;
+  reportedUserId?: DisputeUser | null;
+  auctionId?: DisputeAuction | null;
+  title?: string;
   description: string;
   status: 'open' | 'resolved' | 'dismissed';
   resolutionNote?: string;
@@ -83,6 +78,7 @@ export default function AdminDisputesPage() {
   const [resolvingDispute, setResolvingDispute] = useState<DisputeItem | null>(null);
   const [resolutionStatus, setResolutionStatus] = useState<'resolved' | 'dismissed'>('resolved');
   const [resolutionNote, setResolutionNote] = useState<string>('');
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const fetchDisputes = useCallback(async (currentPage: number, status: string) => {
     setIsLoading(true);
@@ -117,6 +113,7 @@ export default function AdminDisputesPage() {
     if (!resolvingDispute || !resolutionNote.trim()) return;
 
     setActionId(resolvingDispute._id);
+    setModalError(null);
     setNotification(null);
     try {
       const res = await api.patch<{ message: string; dispute: DisputeItem }>(
@@ -129,39 +126,36 @@ export default function AdminDisputesPage() {
 
       setNotification({
         type: 'success',
-        message: res.message || 'Dispute resolved and both parties notified via message and notification.',
+        message: res.message || 'Dispute resolved and both parties notified.',
       });
 
-      // Update in state
+      // Remove newly resolved/dismissed dispute from active 'open' view, otherwise update in place
       setDisputes((prev) =>
-        prev.map((d) =>
-          d._id === resolvingDispute._id
-            ? {
-                ...d,
-                status: resolutionStatus,
-                resolutionNote: resolutionNote.trim(),
-                resolvedAt: new Date().toISOString(),
-              }
-            : d
-        )
+        statusFilter === 'open'
+          ? prev.filter((d) => d._id !== resolvingDispute._id)
+          : prev.map((d) =>
+              d._id === resolvingDispute._id
+                ? {
+                    ...d,
+                    status: resolutionStatus,
+                    resolutionNote: resolutionNote.trim(),
+                    resolvedAt: new Date().toISOString(),
+                  }
+                : d
+            )
       );
+      if (statusFilter === 'open') {
+        setTotal((prev) => Math.max(0, prev - 1));
+      }
 
       setResolvingDispute(null);
       setResolutionNote('');
+      setModalError(null);
     } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Failed to submit dispute resolution',
-      });
+      setModalError(err.message || 'Failed to submit dispute resolution');
     } finally {
       setActionId(null);
     }
-  };
-
-  const formatReason = (reason: string) => {
-    return reason
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const getStatusBadge = (status: DisputeItem['status']) => {
@@ -286,12 +280,12 @@ export default function AdminDisputesPage() {
                 key={item._id}
                 className="card-chai p-5 sm:p-6 space-y-4 border border-neutral-800 hover:border-neutral-700/80 transition-colors"
               >
-                {/* Header: Status, Reason, Date */}
+                {/* Header: Status, Title, Date */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-800/80">
                   <div className="flex flex-wrap items-center gap-2">
                     {getStatusBadge(item.status)}
                     <Chip tone="warning">
-                      {formatReason(item.reason)}
+                      {item.title?.trim() || 'User Dispute'}
                     </Chip>
                     <span className="text-[11px] font-mono text-neutral-500">
                       Case #{item._id.slice(-8).toUpperCase()}
@@ -339,19 +333,23 @@ export default function AdminDisputesPage() {
                     <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold block">
                       Reported Party
                     </span>
-                    <div className="flex items-center gap-2.5 pt-1">
-                      <div className="size-7 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-foreground">
-                        {(item.reportedUserId?.displayName || 'U')[0].toUpperCase()}
+                    {item.reportedUserId ? (
+                      <div className="flex items-center gap-2.5 pt-1">
+                        <div className="size-7 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-foreground">
+                          {(item.reportedUserId.displayName || 'U')[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {item.reportedUserId.displayName || 'Unknown User'}
+                          </p>
+                          <p className="text-[10px] text-neutral-500 font-mono truncate">
+                            {item.reportedUserId.email || 'N/A'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground truncate">
-                          {item.reportedUserId?.displayName || 'Unknown User'}
-                        </p>
-                        <p className="text-[10px] text-neutral-500 font-mono truncate">
-                          {item.reportedUserId?.email || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="text-neutral-500 text-[11px] pt-1">No specific user reported</p>
+                    )}
                   </div>
 
                   {/* Referenced Auction Column */}
@@ -430,6 +428,7 @@ export default function AdminDisputesPage() {
                         setResolvingDispute(item);
                         setResolutionStatus('resolved');
                         setResolutionNote('');
+                        setModalError(null);
                       }}
                       className="text-xs"
                     >
@@ -475,7 +474,15 @@ export default function AdminDisputesPage() {
 
       {/* Resolution Decision Modal Dialog */}
       {resolvingDispute && (
-        <Dialog open={!!resolvingDispute} onClose={() => setResolvingDispute(null)}>
+        <Dialog
+          open={!!resolvingDispute}
+          onClose={() => {
+            if (!actionId) {
+              setResolvingDispute(null);
+              setModalError(null);
+            }
+          }}
+        >
           <DialogHeader>
             <div className="flex items-center gap-3">
               <span className="p-2 rounded-xl border border-emerald-500/40 text-emerald-400 bg-transparent">
@@ -491,6 +498,12 @@ export default function AdminDisputesPage() {
               </div>
             </div>
           </DialogHeader>
+
+          {modalError && (
+            <div className="mb-3">
+              <Alert tone="danger">{modalError}</Alert>
+            </div>
+          )}
 
           <form onSubmit={handleResolveSubmit} className="space-y-4 mt-2">
             {/* Outcome Selection */}
@@ -559,7 +572,13 @@ export default function AdminDisputesPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setResolvingDispute(null)}
+                disabled={actionId === resolvingDispute._id}
+                onClick={() => {
+                  if (!actionId) {
+                    setResolvingDispute(null);
+                    setModalError(null);
+                  }
+                }}
                 className="text-xs"
               >
                 Cancel

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { getMediaUrl } from '@/lib/utils';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Chip } from '@/components/ui/chip';
@@ -13,12 +13,9 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Users,
   Search,
-  ShieldAlert,
   ShieldCheck,
   UserX,
   UserCheck,
-  CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -51,13 +48,15 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
+  const [submittedSearch, setSubmittedSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [confirmSuspendUser, setConfirmSuspendUser] = useState<{ id: string; displayName: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -90,13 +89,18 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (!isAuthorized) return;
-    fetchUsers(page, search, statusFilter, roleFilter);
-  }, [isAuthorized, page, statusFilter, roleFilter, fetchUsers]);
+    fetchUsers(page, submittedSearch, statusFilter, roleFilter);
+  }, [isAuthorized, page, submittedSearch, statusFilter, roleFilter, fetchUsers]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = searchInput.trim();
+    if (page === 1 && trimmed === submittedSearch) {
+      fetchUsers(1, trimmed, statusFilter, roleFilter);
+      return;
+    }
     setPage(1);
-    fetchUsers(1, search, statusFilter, roleFilter);
+    setSubmittedSearch(trimmed);
   };
 
   const executeSuspend = async () => {
@@ -104,6 +108,7 @@ export default function AdminUsersPage() {
     const { id: userId, displayName } = confirmSuspendUser;
 
     setActionUserId(userId);
+    setModalError(null);
     setNotification(null);
     try {
       const res = await api.patch<{ message: string; user: UserItem }>(`/admin/users/${userId}/suspend`);
@@ -116,11 +121,9 @@ export default function AdminUsersPage() {
         prev.map((u) => (u._id === userId ? { ...u, isSuspended: true } : u))
       );
       setConfirmSuspendUser(null);
+      setModalError(null);
     } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Failed to suspend account',
-      });
+      setModalError(err.message || 'Failed to suspend account');
     } finally {
       setActionUserId(null);
     }
@@ -169,7 +172,7 @@ export default function AdminUsersPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchUsers(page, search, statusFilter, roleFilter)}
+          onClick={() => fetchUsers(page, submittedSearch, statusFilter, roleFilter)}
           disabled={isLoading}
           className="text-xs self-start sm:self-auto"
         >
@@ -194,8 +197,8 @@ export default function AdminUsersPage() {
           <div className="relative flex-1">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by display name or email address..."
               className="pl-9 text-xs"
             />
@@ -294,8 +297,9 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-3">
                         <div className="size-8 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-[11px] text-foreground border border-neutral-700/80 shrink-0">
                           {item.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={item.avatar}
+                              src={getMediaUrl(item.avatar)}
                               alt={item.displayName}
                               className="size-full rounded-full object-cover"
                             />
@@ -376,7 +380,10 @@ export default function AdminUsersPage() {
                           variant="outline"
                           size="sm"
                           disabled={isActionLoading}
-                          onClick={() => setConfirmSuspendUser({ id: item._id, displayName: item.displayName })}
+                          onClick={() => {
+                            setModalError(null);
+                            setConfirmSuspendUser({ id: item._id, displayName: item.displayName });
+                          }}
                           className="text-[11px] h-7 px-2.5 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
                         >
                           <UserX className="size-3 mr-1" />
@@ -428,8 +435,14 @@ export default function AdminUsersPage() {
         confirmLabel="Suspend User"
         tone="danger"
         busy={actionUserId === confirmSuspendUser?.id}
+        error={modalError}
         onConfirm={executeSuspend}
-        onCancel={() => setConfirmSuspendUser(null)}
+        onCancel={() => {
+          if (!actionUserId) {
+            setConfirmSuspendUser(null);
+            setModalError(null);
+          }
+        }}
       />
     </div>
   );

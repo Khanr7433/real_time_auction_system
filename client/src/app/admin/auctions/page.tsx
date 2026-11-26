@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { getMediaUrl } from '@/lib/utils';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,19 +14,14 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import {
   Gavel,
   Search,
-  AlertTriangle,
   Flag,
   Trash2,
   StopCircle,
   ExternalLink,
-  CheckCircle2,
-  XCircle,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   Filter,
-  Clock,
-  Eye,
 } from 'lucide-react';
 
 interface AuctionItem {
@@ -69,7 +65,8 @@ export default function AdminAuctionsPage() {
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
+  const [submittedSearch, setSubmittedSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [flaggedOnly, setFlaggedOnly] = useState<boolean>(false);
 
@@ -79,6 +76,7 @@ export default function AdminAuctionsPage() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // Modal / prompt dialog states
   const [terminateDialogAuction, setTerminateDialogAuction] = useState<AuctionItem | null>(null);
@@ -122,19 +120,25 @@ export default function AdminAuctionsPage() {
 
   useEffect(() => {
     if (!isAuthorized) return;
-    fetchAuctions(page, search, statusFilter, flaggedOnly);
-  }, [isAuthorized, page, statusFilter, flaggedOnly, fetchAuctions]);
+    fetchAuctions(page, submittedSearch, statusFilter, flaggedOnly);
+  }, [isAuthorized, page, submittedSearch, statusFilter, flaggedOnly, fetchAuctions]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = searchInput.trim();
+    if (page === 1 && trimmed === submittedSearch) {
+      fetchAuctions(1, trimmed, statusFilter, flaggedOnly);
+      return;
+    }
     setPage(1);
-    fetchAuctions(1, search, statusFilter, flaggedOnly);
+    setSubmittedSearch(trimmed);
   };
 
   // 1. Force Terminate Handler
   const handleTerminateConfirm = async () => {
     if (!terminateDialogAuction) return;
     setActionId(terminateDialogAuction._id);
+    setModalError(null);
     setNotification(null);
     try {
       const res = await api.post<{ message: string; auction: AuctionItem }>(
@@ -152,11 +156,9 @@ export default function AdminAuctionsPage() {
       );
       setTerminateDialogAuction(null);
       setTerminateReason('');
+      setModalError(null);
     } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Failed to terminate auction',
-      });
+      setModalError(err.message || 'Failed to terminate auction');
     } finally {
       setActionId(null);
     }
@@ -166,14 +168,16 @@ export default function AdminAuctionsPage() {
   const handleFlagSubmit = async () => {
     if (!flagDialogAuction) return;
     setActionId(flagDialogAuction._id);
+    setModalError(null);
     setNotification(null);
     try {
       const isCurrentlyFlagged = flagDialogAuction.isFlagged;
+      const nextReason = isCurrentlyFlagged ? '' : flagReason.trim() || 'Flagged for review';
       const res = await api.patch<{ message: string; auction: AuctionItem }>(
         `/admin/auctions/${flagDialogAuction._id}/flag`,
         {
           isFlagged: !isCurrentlyFlagged,
-          reason: isCurrentlyFlagged ? '' : flagReason.trim() || 'Flagged for review',
+          reason: nextReason,
         }
       );
       setNotification({
@@ -183,17 +187,15 @@ export default function AdminAuctionsPage() {
       setAuctions((prev) =>
         prev.map((a) =>
           a._id === flagDialogAuction._id
-            ? { ...a, isFlagged: !isCurrentlyFlagged, flagReason: isCurrentlyFlagged ? '' : flagReason.trim() }
+            ? { ...a, isFlagged: !isCurrentlyFlagged, flagReason: nextReason }
             : a
         )
       );
       setFlagDialogAuction(null);
       setFlagReason('');
+      setModalError(null);
     } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Failed to update flag state',
-      });
+      setModalError(err.message || 'Failed to update flag state');
     } finally {
       setActionId(null);
     }
@@ -203,6 +205,7 @@ export default function AdminAuctionsPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteDialogAuction) return;
     setActionId(deleteDialogAuction._id);
+    setModalError(null);
     setNotification(null);
     try {
       const res = await api.delete<{ message: string }>(
@@ -219,11 +222,9 @@ export default function AdminAuctionsPage() {
       setTotal((prev) => Math.max(0, prev - 1));
       setDeleteDialogAuction(null);
       setDeleteReason('');
+      setModalError(null);
     } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Failed to remove listing',
-      });
+      setModalError(err.message || 'Failed to remove listing');
     } finally {
       setActionId(null);
     }
@@ -284,7 +285,7 @@ export default function AdminAuctionsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchAuctions(page, search, statusFilter, flaggedOnly)}
+          onClick={() => fetchAuctions(page, submittedSearch, statusFilter, flaggedOnly)}
           disabled={isLoading}
           className="text-xs self-start sm:self-auto"
         >
@@ -309,9 +310,9 @@ export default function AdminAuctionsPage() {
           <div className="relative flex-1">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title, description or seller..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by title, description, or seller name/email..."
               className="pl-9 text-xs"
             />
           </div>
@@ -405,8 +406,9 @@ export default function AdminAuctionsPage() {
                       <div className="flex items-center gap-3">
                         <div className="size-10 rounded-lg bg-neutral-800 overflow-hidden border border-neutral-800 shrink-0">
                           {item.images && item.images.length > 0 ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={item.images[0]}
+                              src={getMediaUrl(item.images[0])}
                               alt={item.title}
                               className="size-full object-cover"
                             />
@@ -482,6 +484,7 @@ export default function AdminAuctionsPage() {
                           size="sm"
                           disabled={isActionLoading}
                           onClick={() => {
+                            setModalError(null);
                             setFlagDialogAuction(item);
                             setFlagReason(item.flagReason || '');
                           }}
@@ -502,6 +505,7 @@ export default function AdminAuctionsPage() {
                             size="sm"
                             disabled={isActionLoading}
                             onClick={() => {
+                              setModalError(null);
                               setTerminateDialogAuction(item);
                               setTerminateReason('');
                             }}
@@ -519,6 +523,7 @@ export default function AdminAuctionsPage() {
                           size="sm"
                           disabled={isActionLoading}
                           onClick={() => {
+                            setModalError(null);
                             setDeleteDialogAuction(item);
                             setDeleteReason('');
                           }}
@@ -568,7 +573,15 @@ export default function AdminAuctionsPage() {
 
       {/* Force Terminate Modal Dialog */}
       {terminateDialogAuction && (
-        <Dialog open={!!terminateDialogAuction} onClose={() => setTerminateDialogAuction(null)}>
+        <Dialog
+          open={!!terminateDialogAuction}
+          onClose={() => {
+            if (!actionId) {
+              setTerminateDialogAuction(null);
+              setModalError(null);
+            }
+          }}
+        >
           <DialogHeader>
             <div className="flex items-center gap-3">
               <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
@@ -582,6 +595,12 @@ export default function AdminAuctionsPage() {
               </div>
             </div>
           </DialogHeader>
+
+          {modalError && (
+            <div className="mb-3">
+              <Alert tone="danger">{modalError}</Alert>
+            </div>
+          )}
 
           <p className="text-xs text-neutral-400 leading-relaxed">
             This action terminates the auction immediately. Connected clients in the auction room will receive the <code className="text-red-400">auction_ended</code> socket event and the seller will be notified.
@@ -603,7 +622,13 @@ export default function AdminAuctionsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setTerminateDialogAuction(null)}
+              disabled={actionId === terminateDialogAuction._id}
+              onClick={() => {
+                if (!actionId) {
+                  setTerminateDialogAuction(null);
+                  setModalError(null);
+                }
+              }}
               className="text-xs"
             >
               Cancel
@@ -623,7 +648,15 @@ export default function AdminAuctionsPage() {
 
       {/* Flag / Unflag Modal Dialog */}
       {flagDialogAuction && (
-        <Dialog open={!!flagDialogAuction} onClose={() => setFlagDialogAuction(null)}>
+        <Dialog
+          open={!!flagDialogAuction}
+          onClose={() => {
+            if (!actionId) {
+              setFlagDialogAuction(null);
+              setModalError(null);
+            }
+          }}
+        >
           <DialogHeader>
             <div className="flex items-center gap-3">
               <span className="p-2 rounded-xl border border-neutral-700 text-foreground bg-neutral-800">
@@ -639,6 +672,12 @@ export default function AdminAuctionsPage() {
               </div>
             </div>
           </DialogHeader>
+
+          {modalError && (
+            <div className="mb-3">
+              <Alert tone="danger">{modalError}</Alert>
+            </div>
+          )}
 
           {!flagDialogAuction.isFlagged ? (
             <div className="mt-2">
@@ -662,7 +701,13 @@ export default function AdminAuctionsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setFlagDialogAuction(null)}
+              disabled={actionId === flagDialogAuction._id}
+              onClick={() => {
+                if (!actionId) {
+                  setFlagDialogAuction(null);
+                  setModalError(null);
+                }
+              }}
               className="text-xs"
             >
               Cancel
@@ -682,7 +727,15 @@ export default function AdminAuctionsPage() {
 
       {/* Delete Auction Modal Dialog */}
       {deleteDialogAuction && (
-        <Dialog open={!!deleteDialogAuction} onClose={() => setDeleteDialogAuction(null)}>
+        <Dialog
+          open={!!deleteDialogAuction}
+          onClose={() => {
+            if (!actionId) {
+              setDeleteDialogAuction(null);
+              setModalError(null);
+            }
+          }}
+        >
           <DialogHeader>
             <div className="flex items-center gap-3">
               <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
@@ -696,6 +749,12 @@ export default function AdminAuctionsPage() {
               </div>
             </div>
           </DialogHeader>
+
+          {modalError && (
+            <div className="mb-3">
+              <Alert tone="danger">{modalError}</Alert>
+            </div>
+          )}
 
           <p className="text-xs text-red-400/90 leading-relaxed">
             Warning: This permanently removes the listing from the database and notifies the seller. This action cannot be undone.
@@ -717,7 +776,13 @@ export default function AdminAuctionsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setDeleteDialogAuction(null)}
+              disabled={actionId === deleteDialogAuction._id}
+              onClick={() => {
+                if (!actionId) {
+                  setDeleteDialogAuction(null);
+                  setModalError(null);
+                }
+              }}
               className="text-xs"
             >
               Cancel

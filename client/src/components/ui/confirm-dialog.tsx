@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
+import { Alert } from './alert';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 
 export interface ConfirmDialogProps {
@@ -13,6 +14,7 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   tone?: 'danger' | 'warning' | 'default';
   busy?: boolean;
+  error?: string | null;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
@@ -25,6 +27,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   tone = 'danger',
   busy = false,
+  error = null,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -77,6 +80,8 @@ export function ConfirmDialog({
             </p>
           </div>
         </div>
+
+        {error && <Alert tone="danger">{error}</Alert>}
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
           <Button

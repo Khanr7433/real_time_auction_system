@@ -12,17 +12,12 @@ import { Alert } from '@/components/ui/alert';
 import {
   Users,
   Gavel,
-  DollarSign,
   AlertTriangle,
   Megaphone,
   Activity,
   RefreshCw,
   TrendingUp,
-  CheckCircle2,
-  XCircle,
-  Clock,
   ArrowRight,
-  ShieldCheck,
   Send,
 } from 'lucide-react';
 
@@ -351,7 +346,7 @@ export default function AdminOverviewPage() {
               Broadcast System Announcement
             </h3>
             <p className="text-xs text-neutral-500">
-              Dispatches a persistent notification and real-time socket toast to all online users
+              Persists a notification for every active user and pushes a real-time socket toast to online users
             </p>
           </div>
         </div>
