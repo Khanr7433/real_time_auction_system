@@ -24,11 +24,13 @@ const disputeSchema = new mongoose.Schema(
       type: String,
       default: '',
       trim: true,
+      maxlength: [200, 'Dispute title cannot exceed 200 characters'],
     },
     description: {
       type: String,
       required: [true, 'Dispute description is required'],
       trim: true,
+      maxlength: [2000, 'Dispute description cannot exceed 2000 characters'],
     },
     status: {
       type: String,
@@ -40,6 +42,7 @@ const disputeSchema = new mongoose.Schema(
       type: String,
       default: '',
       trim: true,
+      maxlength: [1000, 'Resolution note cannot exceed 1000 characters'],
     },
     resolvedAt: {
       type: Date,

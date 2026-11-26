@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import { Auction } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
+import { isValidAvatarUrl } from '../utils/validation.js';
 
 // GET /api/users/profile
 const getProfile = async (req, res, next) => {
@@ -26,13 +27,28 @@ const getProfile = async (req, res, next) => {
 // PUT /api/users/profile
 const updateProfile = async (req, res, next) => {
   try {
-    const { displayName, contactInfo, avatar } = req.body;
+    const { displayName, contactInfo, avatar } = req.body || {};
     const userId = req.user._id;
 
     const updates = {};
-    if (displayName !== undefined) updates.displayName = displayName.trim();
-    if (contactInfo !== undefined) updates.contactInfo = contactInfo.trim();
-    if (avatar !== undefined) updates.avatar = avatar;
+    if (displayName !== undefined) {
+      if (typeof displayName !== 'string' || !displayName.trim()) {
+        return res.status(400).json({ error: 'Display name must be a non-empty string' });
+      }
+      updates.displayName = displayName.trim();
+    }
+    if (contactInfo !== undefined) {
+      if (typeof contactInfo !== 'string') {
+        return res.status(400).json({ error: 'Contact info must be a string' });
+      }
+      updates.contactInfo = contactInfo.trim();
+    }
+    if (avatar !== undefined) {
+      if (!isValidAvatarUrl(avatar)) {
+        return res.status(400).json({ error: 'Avatar must be a valid http(s) URL or /uploads/ path' });
+      }
+      updates.avatar = avatar.trim();
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -49,6 +65,7 @@ const updateProfile = async (req, res, next) => {
         contactInfo: updatedUser.contactInfo,
         avatar: updatedUser.avatar,
         role: updatedUser.role,
+        isSuspended: updatedUser.isSuspended,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       },
@@ -79,7 +96,7 @@ const getUserBids = async (req, res, next) => {
 
     const auctionIds = bidsGroup.map((b) => b._id);
     const auctions = await Auction.find({ _id: { $in: auctionIds } })
-      .populate('sellerId', 'displayName avatar email')
+      .populate('sellerId', 'displayName avatar')
       .lean();
 
     const enriched = bidsGroup

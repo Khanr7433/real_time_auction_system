@@ -1,4 +1,5 @@
 import { Notification } from '../models/Notification.js';
+import { isValidObjectId } from '../utils/validation.js';
 
 // GET /api/notifications - Get paginated notifications for current user
 export async function getNotifications(req, res) {
@@ -40,6 +41,9 @@ export async function getNotifications(req, res) {
 export async function markAsRead(req, res) {
   try {
     const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid notification identifier' });
+    }
     const userId = req.user._id;
 
     const notification = await Notification.findOneAndUpdate(

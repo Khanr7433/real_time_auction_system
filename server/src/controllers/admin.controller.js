@@ -1,8 +1,19 @@
 import notificationService from '../services/notification.service.js';
+import auctionTimerService from '../services/auctionTimer.service.js';
 import User from '../models/User.js';
 import { Auction } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
 import { Dispute } from '../models/Dispute.js';
+import {
+  cleanupStoredImages,
+  escapeRegex,
+  isValidObjectId,
+} from '../utils/validation.js';
+
+const VALID_USER_ROLES = new Set(['user', 'admin']);
+const VALID_AUCTION_STATUSES = new Set(['pending', 'live', 'completed', 'unsold', 'admin-terminated']);
+const VALID_DISPUTE_STATUSES = new Set(['open', 'resolved', 'dismissed']);
+const VALID_RESOLUTION_STATUSES = new Set(['resolved', 'dismissed']);
 
 // GET /api/admin/analytics - Platform analytics using MongoDB aggregation
 export async function getAnalytics(req, res) {
@@ -16,11 +27,8 @@ export async function getAnalytics(req, res) {
       thirtyDayBidStats,
       openDisputeCount,
     ] = await Promise.all([
-      // 1. Active (non-suspended) users
       User.countDocuments({ isSuspended: false }),
-      // Total registered users
       User.countDocuments({}),
-      // 2. Auctions breakdown by status
       Auction.aggregate([
         {
           $group: {
@@ -29,7 +37,6 @@ export async function getAnalytics(req, res) {
           },
         },
       ]),
-      // 3. 30-day bid volume and count
       Bid.aggregate([
         {
           $match: {
@@ -44,11 +51,9 @@ export async function getAnalytics(req, res) {
           },
         },
       ]),
-      // 4. Open disputes
       Dispute.countDocuments({ status: 'open' }),
     ]);
 
-    // Format auction breakdown
     const auctions = {
       live: 0,
       completed: 0,
@@ -78,6 +83,7 @@ export async function getAnalytics(req, res) {
         completed: auctions.completed,
         unsold: auctions.unsold,
         terminated: auctions['admin-terminated'],
+        pending: auctions.pending,
         total: auctions.total,
       },
       bids: {
@@ -103,15 +109,18 @@ export async function getUsers(req, res) {
 
     const filter = {};
 
-    if (req.query.search && req.query.search.trim()) {
-      const term = req.query.search.trim();
+    const escaped = escapeRegex(req.query.search);
+    if (escaped) {
       filter.$or = [
-        { email: { $regex: term, $options: 'i' } },
-        { displayName: { $regex: term, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+        { displayName: { $regex: escaped, $options: 'i' } },
       ];
     }
 
     if (req.query.role) {
+      if (!VALID_USER_ROLES.has(req.query.role)) {
+        return res.status(400).json({ error: 'Invalid role filter' });
+      }
       filter.role = req.query.role;
     }
 
@@ -143,10 +152,13 @@ export async function getUsers(req, res) {
   }
 }
 
-// PATCH /api/admin/users/:id/suspend - Suspend user and disconnect active sockets
+// PATCH /api/admin/users/:id/suspend - Suspend user, increment tokenVersion, and disconnect active sockets
 export async function suspendUser(req, res) {
   try {
     const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid user identifier' });
+    }
 
     if (id === req.user._id.toString()) {
       return res.status(400).json({ error: 'You cannot suspend your own admin account' });
@@ -154,7 +166,7 @@ export async function suspendUser(req, res) {
 
     const user = await User.findByIdAndUpdate(
       id,
-      { $set: { isSuspended: true } },
+      { $set: { isSuspended: true }, $inc: { tokenVersion: 1 } },
       { new: true }
     ).select('-passwordHash -resetPasswordToken -resetPasswordExpires');
 
@@ -162,8 +174,7 @@ export async function suspendUser(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Force disconnect all active sockets belonging to this user
-    const io = req.app.get('io');
+    const io = req.app?.get?.('io');
     if (io) {
       io.in(`user:${id}`).disconnectSockets(true);
     }
@@ -181,6 +192,9 @@ export async function suspendUser(req, res) {
 export async function reactivateUser(req, res) {
   try {
     const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid user identifier' });
+    }
 
     const user = await User.findByIdAndUpdate(
       id,
@@ -201,7 +215,7 @@ export async function reactivateUser(req, res) {
   }
 }
 
-// GET /api/admin/auctions - List auctions with status filter and pagination
+// GET /api/admin/auctions - List auctions with status filter, seller-aware search, and pagination
 export async function getAdminAuctions(req, res) {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -211,6 +225,9 @@ export async function getAdminAuctions(req, res) {
     const filter = {};
 
     if (req.query.status && req.query.status !== 'all') {
+      if (!VALID_AUCTION_STATUSES.has(req.query.status)) {
+        return res.status(400).json({ error: 'Invalid auction status filter' });
+      }
       filter.status = req.query.status;
     }
 
@@ -218,11 +235,22 @@ export async function getAdminAuctions(req, res) {
       filter.isFlagged = true;
     }
 
-    if (req.query.search && req.query.search.trim()) {
-      const term = req.query.search.trim();
+    const escaped = escapeRegex(req.query.search);
+    if (escaped) {
+      const matchingSellers = await User.find({
+        $or: [
+          { email: { $regex: escaped, $options: 'i' } },
+          { displayName: { $regex: escaped, $options: 'i' } },
+        ],
+      })
+        .select('_id')
+        .lean();
+
+      const sellerIds = matchingSellers.map((s) => s._id);
       filter.$or = [
-        { title: { $regex: term, $options: 'i' } },
-        { description: { $regex: term, $options: 'i' } },
+        { title: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
+        ...(sellerIds.length > 0 ? [{ sellerId: { $in: sellerIds } }] : []),
       ];
     }
 
@@ -239,7 +267,7 @@ export async function getAdminAuctions(req, res) {
 
     const enriched = auctions.map((a) => ({
       ...a,
-      timeRemainingSeconds: Math.max(0, Math.floor((new Date(a.endTime).getTime() - Date.now()) / 1000)),
+      timeRemainingSeconds: Math.max(0, Math.ceil((new Date(a.endTime).getTime() - Date.now()) / 1000)),
     }));
 
     return res.status(200).json({
@@ -254,44 +282,49 @@ export async function getAdminAuctions(req, res) {
   }
 }
 
-// DELETE /api/admin/auctions/:id - Admin remove auction and notify seller
+// DELETE /api/admin/auctions/:id - Admin remove auction, cleanup bids/media, and notify seller
 export async function deleteAdminAuction(req, res) {
   try {
     const { id } = req.params;
-    const { reason } = req.body || {};
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid auction identifier' });
+    }
 
-    const auction = await Auction.findById(id);
-    if (!auction) {
+    const rawReason = req.body?.reason ?? req.query?.reason;
+    const reasonText =
+      typeof rawReason === 'string' && rawReason.trim()
+        ? rawReason.trim()
+        : 'Violation of platform guidelines';
+
+    const deleted = await Auction.findByIdAndDelete(id);
+    if (!deleted) {
       return res.status(404).json({ error: 'Auction not found' });
     }
 
-    const sellerId = auction.sellerId;
-    const auctionTitle = auction.title;
+    await Bid.deleteMany({ auctionId: id });
+    cleanupStoredImages(deleted.images);
+    auctionTimerService.warningSent.delete(id);
 
-    await Auction.findByIdAndDelete(id);
-
-    // Notify seller
-    if (sellerId) {
+    if (deleted.sellerId) {
       notificationService
         .sendNotification({
-          userId: sellerId,
+          userId: deleted.sellerId,
           type: 'system',
           title: 'Listing Removed by Moderator',
-          message: `Your listing "${auctionTitle}" was removed by an administrator. Reason: ${
-            reason || 'Violation of platform guidelines'
-          }.`,
-          data: { auctionId: id, auctionTitle },
+          message: `Your listing "${deleted.title}" was removed by an administrator. Reason: ${reasonText}.`,
+          data: { auctionId: id, auctionTitle: deleted.title },
         })
         .catch((err) => console.error('Failed to notify seller of removal:', err.message));
     }
 
-    // Broadcast room closure if live
-    const io = req.app.get('io');
+    const io = req.app?.get?.('io');
     if (io) {
       io.to(`auction:${id}`).emit('auction_ended', {
         auctionId: id,
         status: 'admin-terminated',
-        reason: 'Auction removed by administrator',
+        winnerId: null,
+        finalBid: deleted.currentBid,
+        reason: reasonText,
       });
     }
 
@@ -307,7 +340,14 @@ export async function deleteAdminAuction(req, res) {
 export async function flagAuction(req, res) {
   try {
     const { id } = req.params;
-    const { isFlagged = true, reason = '' } = req.body;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid auction identifier' });
+    }
+
+    const { isFlagged = true, reason = '' } = req.body || {};
+    if (reason !== undefined && typeof reason !== 'string') {
+      return res.status(400).json({ error: 'Flag reason must be a string' });
+    }
 
     const auction = await Auction.findByIdAndUpdate(
       id,
@@ -325,7 +365,7 @@ export async function flagAuction(req, res) {
     }
 
     return res.status(200).json({
-      message: isFlagged ? 'Auction flagged for review' : 'Auction unflagged',
+      message: Boolean(isFlagged) ? 'Auction flagged for review' : 'Auction unflagged',
       auction,
     });
   } catch (error) {
@@ -333,54 +373,62 @@ export async function flagAuction(req, res) {
   }
 }
 
-// POST /api/admin/auctions/:id/terminate - Force-terminate active auction
+// POST /api/admin/auctions/:id/terminate - Atomically force-terminate active auction
 export async function terminateAuction(req, res) {
   try {
     const { id } = req.params;
-    const { reason } = req.body || {};
-
-    const auction = await Auction.findById(id);
-    if (!auction) {
-      return res.status(404).json({ error: 'Auction not found' });
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid auction identifier' });
     }
 
-    if (auction.status !== 'live') {
-      return res.status(400).json({ error: `Cannot terminate auction with status "${auction.status}"` });
+    const rawReason = req.body?.reason;
+    const reasonText =
+      typeof rawReason === 'string' && rawReason.trim()
+        ? rawReason.trim()
+        : 'Terminated by administrator';
+
+    const updated = await Auction.findOneAndUpdate(
+      { _id: id, status: 'live' },
+      { $set: { status: 'admin-terminated' } },
+      { new: true }
+    );
+
+    if (!updated) {
+      const existing = await Auction.findById(id).select('status').lean();
+      if (!existing) {
+        return res.status(404).json({ error: 'Auction not found' });
+      }
+      return res.status(400).json({ error: `Cannot terminate auction with status "${existing.status}"` });
     }
 
-    auction.status = 'admin-terminated';
-    await auction.save();
+    auctionTimerService.warningSent.delete(id);
 
-    // Broadcast to room that auction was terminated
-    const io = req.app.get('io');
+    const io = req.app?.get?.('io');
     if (io) {
       io.to(`auction:${id}`).emit('auction_ended', {
         auctionId: id,
         status: 'admin-terminated',
         winnerId: null,
-        finalBid: auction.currentBid,
-        reason: reason || 'Terminated by administrator',
+        finalBid: updated.currentBid,
+        reason: reasonText,
       });
     }
 
-    // Notify seller
-    if (auction.sellerId) {
+    if (updated.sellerId) {
       notificationService
         .sendNotification({
-          userId: auction.sellerId,
+          userId: updated.sellerId,
           type: 'system',
           title: 'Auction Force-Terminated',
-          message: `Your active auction "${auction.title}" was terminated by an administrator. Reason: ${
-            reason || 'Administrative action'
-          }.`,
-          data: { auctionId: id, auctionTitle: auction.title },
+          message: `Your active auction "${updated.title}" was terminated by an administrator. Reason: ${reasonText}.`,
+          data: { auctionId: id, auctionTitle: updated.title },
         })
         .catch((err) => console.error('Failed to notify seller of termination:', err.message));
     }
 
     return res.status(200).json({
       message: 'Auction force-terminated successfully',
-      auction,
+      auction: updated,
     });
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Failed to terminate auction' });
@@ -396,6 +444,9 @@ export async function getAdminDisputes(req, res) {
 
     const filter = {};
     if (req.query.status && req.query.status !== 'all') {
+      if (!VALID_DISPUTE_STATUSES.has(req.query.status)) {
+        return res.status(400).json({ error: 'Invalid dispute status filter' });
+      }
       filter.status = req.query.status;
     }
 
@@ -423,46 +474,65 @@ export async function getAdminDisputes(req, res) {
   }
 }
 
-// PATCH /api/admin/disputes/:id/resolve - Mark dispute resolved with note and notify parties
+// PATCH /api/admin/disputes/:id/resolve - Atomically resolve or dismiss an open dispute
 export async function resolveDispute(req, res) {
   try {
     const { id } = req.params;
-    const { resolutionNote, status = 'resolved' } = req.body;
-
-    const dispute = await Dispute.findById(id).populate('auctionId', 'title');
-    if (!dispute) {
-      return res.status(404).json({ error: 'Dispute not found' });
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'Invalid dispute identifier' });
     }
 
-    dispute.status = status;
-    dispute.resolutionNote = resolutionNote?.trim() || 'Resolved by administrator';
-    dispute.resolvedAt = new Date();
-    await dispute.save();
+    const { resolutionNote, status = 'resolved' } = req.body || {};
+    if (typeof status !== 'string' || !VALID_RESOLUTION_STATUSES.has(status)) {
+      return res.status(400).json({ error: 'Resolution status must be "resolved" or "dismissed"' });
+    }
+    if (resolutionNote !== undefined && typeof resolutionNote !== 'string') {
+      return res.status(400).json({ error: 'Resolution note must be a string' });
+    }
 
-    const note = dispute.resolutionNote;
+    const note = resolutionNote?.trim() || 'Resolved by administrator';
+
+    const dispute = await Dispute.findOneAndUpdate(
+      { _id: id, status: 'open' },
+      {
+        $set: {
+          status,
+          resolutionNote: note,
+          resolvedAt: new Date(),
+        },
+      },
+      { new: true }
+    ).populate('auctionId', 'title');
+
+    if (!dispute) {
+      const existing = await Dispute.findById(id).select('status').lean();
+      if (!existing) {
+        return res.status(404).json({ error: 'Dispute not found' });
+      }
+      return res.status(400).json({ error: `Dispute is already ${existing.status}` });
+    }
+
     const auctionTitle = dispute.auctionId?.title || 'the referenced listing';
 
-    // 1. Notify reporter
     if (dispute.reporterId) {
       notificationService
         .sendNotification({
           userId: dispute.reporterId,
           type: 'system',
           title: 'Dispute Resolved',
-          message: `Your dispute regarding "${auctionTitle}" has been resolved. Note: "${note}"`,
+          message: `Your dispute regarding "${auctionTitle}" has been ${status}. Note: "${note}"`,
           data: { disputeId: id, resolutionNote: note },
         })
         .catch((err) => console.error('Failed to notify reporter:', err.message));
     }
 
-    // 2. Notify reported user if applicable
     if (dispute.reportedUserId) {
       notificationService
         .sendNotification({
           userId: dispute.reportedUserId,
           type: 'system',
           title: 'Dispute Resolved',
-          message: `The dispute involving "${auctionTitle}" has been closed with resolution: "${note}"`,
+          message: `The dispute involving "${auctionTitle}" has been closed (${status}) with note: "${note}"`,
           data: { disputeId: id, resolutionNote: note },
         })
         .catch((err) => console.error('Failed to notify reported user:', err.message));
@@ -480,10 +550,13 @@ export async function resolveDispute(req, res) {
 // POST /api/admin/announcements - Broadcast a system announcement
 export async function createAnnouncement(req, res) {
   try {
-    const { title, message } = req.body;
+    const { title, message } = req.body || {};
 
-    if (!message || !message.trim()) {
+    if (typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: 'Announcement message is required' });
+    }
+    if (title !== undefined && typeof title !== 'string') {
+      return res.status(400).json({ error: 'Announcement title must be a string' });
     }
 
     const payload = await notificationService.broadcastSystemAnnouncement({
@@ -517,4 +590,3 @@ export default {
   resolveDispute,
   createAnnouncement,
 };
-

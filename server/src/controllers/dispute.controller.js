@@ -1,29 +1,39 @@
 import { Dispute } from '../models/Dispute.js';
 import { Auction } from '../models/Auction.js';
+import { isValidObjectId } from '../utils/validation.js';
 
 // POST /api/disputes - File a dispute regarding an auction or user
 export async function createDispute(req, res, next) {
   try {
-    const { auctionId, title, description } = req.body;
+    const { auctionId, title, description } = req.body || {};
     const reporterId = req.user._id;
 
-    if (!description || !description.trim()) {
+    if (typeof description !== 'string' || !description.trim()) {
       return res.status(400).json({ error: 'Dispute description is required' });
+    }
+
+    if (title !== undefined && typeof title !== 'string') {
+      return res.status(400).json({ error: 'Dispute title must be a string' });
     }
 
     let reportedUserId = null;
     let auctionTitle = '';
 
-    if (auctionId) {
+    if (auctionId !== undefined && auctionId !== null && auctionId !== '') {
+      if (!isValidObjectId(auctionId)) {
+        return res.status(400).json({ error: 'Invalid auction identifier' });
+      }
+
       const auction = await Auction.findById(auctionId);
-      if (auction) {
-        auctionTitle = auction.title;
-        // If reporter is the seller, report highest bidder; else report seller
-        if (auction.sellerId.toString() === reporterId.toString()) {
-          reportedUserId = auction.highestBidderId || null;
-        } else {
-          reportedUserId = auction.sellerId;
-        }
+      if (!auction) {
+        return res.status(404).json({ error: 'Referenced auction not found' });
+      }
+
+      auctionTitle = auction.title;
+      if (auction.sellerId.toString() === reporterId.toString()) {
+        reportedUserId = auction.highestBidderId || null;
+      } else {
+        reportedUserId = auction.sellerId;
       }
     }
 
