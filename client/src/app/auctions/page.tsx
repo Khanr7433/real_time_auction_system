@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getMediaUrl } from "@/lib/utils";
@@ -56,9 +56,63 @@ export default function AuctionsBrowsePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [debouncedFilters, setDebouncedFilters] = useState({
+    search: "",
+    minPrice: "",
+    maxPrice: "",
+  });
   const [showFilters, setShowFilters] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const minNum = minPrice !== "" ? Number(minPrice) : null;
+  const maxNum = maxPrice !== "" ? Number(maxPrice) : null;
+  const priceValidationError =
+    (minNum !== null && (isNaN(minNum) || minNum < 0)) ||
+    (maxNum !== null && (isNaN(maxNum) || maxNum < 0))
+      ? "Prices cannot be negative."
+      : minNum !== null && maxNum !== null && minNum > maxNum
+        ? "Minimum price cannot exceed maximum price."
+        : null;
+
+  // Debounce search and price inputs (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilters({
+        search: searchQuery.trim(),
+        minPrice,
+        maxPrice,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, minPrice, maxPrice]);
+
+  // Live countdown ticker for visible auction cards
+  useEffect(() => {
+    if (auctions.length === 0) return;
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [auctions.length]);
 
   const fetchAuctions = useCallback(async () => {
+    const dMin = debouncedFilters.minPrice !== "" ? Number(debouncedFilters.minPrice) : null;
+    const dMax = debouncedFilters.maxPrice !== "" ? Number(debouncedFilters.maxPrice) : null;
+    if (
+      (dMin !== null && (isNaN(dMin) || dMin < 0)) ||
+      (dMax !== null && (isNaN(dMax) || dMax < 0)) ||
+      (dMin !== null && dMax !== null && dMin > dMax)
+    ) {
+      return;
+    }
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -68,38 +122,52 @@ export default function AuctionsBrowsePage() {
       if (selectedCategory && selectedCategory !== "All") {
         params.set("category", selectedCategory);
       }
-      if (searchQuery.trim()) {
-        params.set("search", searchQuery.trim());
+      if (debouncedFilters.search) {
+        params.set("search", debouncedFilters.search);
       }
-      if (minPrice && !isNaN(Number(minPrice))) {
-        params.set("minPrice", minPrice);
+      if (dMin !== null) {
+        params.set("minPrice", dMin.toString());
       }
-      if (maxPrice && !isNaN(Number(maxPrice))) {
-        params.set("maxPrice", maxPrice);
+      if (dMax !== null) {
+        params.set("maxPrice", dMax.toString());
       }
 
       const res: AuctionsResponse = await api.get(
         `/auctions?${params.toString()}`,
+        { signal: controller.signal },
       );
+      if (controller.signal.aborted) return;
       setAuctions(res.auctions || []);
       setTotal(res.total || 0);
       setTotalPages(res.totalPages || 1);
-    } catch {
+      setNowMs(Date.now());
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       setAuctions([]);
       setTotal(0);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  }, [page, selectedCategory, searchQuery, minPrice, maxPrice]);
+  }, [page, selectedCategory, debouncedFilters, refreshTick]);
 
   useEffect(() => {
     fetchAuctions();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [fetchAuctions]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchAuctions();
+    setDebouncedFilters({
+      search: searchQuery.trim(),
+      minPrice,
+      maxPrice,
+    });
+    setRefreshTick((t) => t + 1);
   };
 
   const handleResetFilters = () => {
@@ -107,6 +175,7 @@ export default function AuctionsBrowsePage() {
     setSearchQuery("");
     setMinPrice("");
     setMaxPrice("");
+    setDebouncedFilters({ search: "", minPrice: "", maxPrice: "" });
     setPage(1);
   };
 
@@ -133,7 +202,10 @@ export default function AuctionsBrowsePage() {
               type="text"
               placeholder="Search by product title or description..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
               className="pl-9"
             />
           </div>
@@ -145,7 +217,7 @@ export default function AuctionsBrowsePage() {
             variant="outline"
             size="md"
             onClick={() => setShowFilters(!showFilters)}
-            className="hidden sm:inline-flex"
+            className="inline-flex"
           >
             <SlidersHorizontal className="size-4 mr-1.5" />
             Filters
@@ -159,17 +231,25 @@ export default function AuctionsBrowsePage() {
               <span className="text-neutral-500 font-medium">Price range:</span>
               <Input
                 type="number"
+                min={0}
                 placeholder="Min $"
                 value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
+                onChange={(e) => {
+                  setMinPrice(e.target.value);
+                  setPage(1);
+                }}
                 className="w-24 h-8 text-xs"
               />
               <span className="text-neutral-400">to</span>
               <Input
                 type="number"
+                min={0}
                 placeholder="Max $"
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
+                onChange={(e) => {
+                  setMaxPrice(e.target.value);
+                  setPage(1);
+                }}
                 className="w-24 h-8 text-xs"
               />
             </div>
@@ -182,6 +262,11 @@ export default function AuctionsBrowsePage() {
             >
               Reset all
             </Button>
+            {priceValidationError && (
+              <span className="text-red-500 text-xs font-medium">
+                {priceValidationError}
+              </span>
+            )}
           </div>
         )}
 
@@ -240,7 +325,11 @@ export default function AuctionsBrowsePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {auctions.map((auction) => {
-            const hasEnded = (auction.timeRemainingSeconds ?? 0) <= 0;
+            const parsedEndMs = auction.endTime ? new Date(auction.endTime).getTime() : NaN;
+            const liveRemaining = Number.isFinite(parsedEndMs)
+              ? Math.max(0, Math.ceil((parsedEndMs - nowMs) / 1000))
+              : (auction.timeRemainingSeconds ?? 0);
+            const hasEnded = liveRemaining <= 0 || auction.status !== "live";
             return (
               <Link
                 key={auction._id}
@@ -302,7 +391,7 @@ export default function AuctionsBrowsePage() {
                     <div className="text-right flex items-center gap-1 text-[11px] text-neutral-500">
                       <Clock className="size-3" />
                       <span>
-                        {formatTimeRemaining(auction.timeRemainingSeconds)}
+                        {formatTimeRemaining(liveRemaining)}
                       </span>
                     </div>
                   </div>

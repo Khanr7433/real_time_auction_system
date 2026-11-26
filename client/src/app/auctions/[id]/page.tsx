@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, Suspense } from 'react';
+import React, { useState, useEffect, useRef, use, Suspense } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { getMediaUrl } from '@/lib/utils';
@@ -27,10 +27,8 @@ import {
   User,
   Tag,
   ArrowLeft,
-  ArrowUpRight,
   AlertCircle,
   CheckCircle2,
-  Zap,
   History,
   Flag,
 } from 'lucide-react';
@@ -73,6 +71,22 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
   const [disputeMessage, setDisputeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Timeout refs for cleanup on unmount or re-trigger
+  const isSubmittingBidRef = useRef<boolean>(false);
+  const disputeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bidSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bidErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snipingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (disputeTimeoutRef.current) clearTimeout(disputeTimeoutRef.current);
+      if (bidSuccessTimeoutRef.current) clearTimeout(bidSuccessTimeoutRef.current);
+      if (bidErrorTimeoutRef.current) clearTimeout(bidErrorTimeoutRef.current);
+      if (snipingTimeoutRef.current) clearTimeout(snipingTimeoutRef.current);
+    };
+  }, []);
+
   const handleFileDispute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeDescription.trim()) return;
@@ -89,7 +103,8 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
         type: 'success',
         text: 'Dispute submitted successfully and queued for admin review.',
       });
-      setTimeout(() => {
+      if (disputeTimeoutRef.current) clearTimeout(disputeTimeoutRef.current);
+      disputeTimeoutRef.current = setTimeout(() => {
         setIsDisputeOpen(false);
         setDisputeTitle('');
         setDisputeDescription('');
@@ -138,23 +153,29 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
     loadAuction();
   }, [auctionId]);
 
+  const isTicking = timeRemaining !== null && timeRemaining > 0;
+
   // Client-side ticking countdown for smooth second-by-second updates
   useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0) return;
+    if (!isTicking) return;
 
     const timer = setInterval(() => {
       setTimeRemaining((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining]);
+  }, [isTicking]);
 
   // Real-time WebSocket room subscription & listeners
   useEffect(() => {
     if (!socket || !auctionId) return;
 
-    // Join the auction room
-    socket.emit('join_auction', { auctionId });
+    const joinRoom = () => {
+      socket.emit('join_auction', { auctionId });
+    };
+
+    // Join the auction room immediately and on every reconnect
+    joinRoom();
 
     // Handle initial state from room
     const handleAuctionState = (state: any) => {
@@ -194,7 +215,6 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           setTimeRemaining(data.secondsLeft);
         }
 
-        // Prepend new bid to live history ledger
         const rawName = data.bidderName || 'Bidder';
         const masked =
           rawName.length > 2
@@ -212,24 +232,40 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           ...prev,
         ]);
 
+        if (isSubmittingBidRef.current || (user?.id && data.highestBidderId === user.id)) {
+          setBidAmount('');
+        }
+        isSubmittingBidRef.current = false;
         setIsSubmittingBid(false);
         setBidError(null);
         setBidSuccess(
           `Bid of $${data.currentBid.toLocaleString()} accepted${
-            data.bidderName ? ` from ${data.bidderName}` : ''
+            data.bidderName ? ` from ${masked}` : ''
           }!`
         );
 
         // Auto-dismiss success banner
-        setTimeout(() => setBidSuccess(null), 5000);
+        if (bidSuccessTimeoutRef.current) clearTimeout(bidSuccessTimeoutRef.current);
+        bidSuccessTimeoutRef.current = setTimeout(() => setBidSuccess(null), 5000);
       }
     };
 
     // Handle bid rejection
     const handleBidRejected = (data: any) => {
+      isSubmittingBidRef.current = false;
       setIsSubmittingBid(false);
       setBidError(data.reason || 'Bid was rejected');
-      setTimeout(() => setBidError(null), 6000);
+      if (bidErrorTimeoutRef.current) clearTimeout(bidErrorTimeoutRef.current);
+      bidErrorTimeoutRef.current = setTimeout(() => setBidError(null), 6000);
+    };
+
+    // Handle socket-level errors (e.g. join_auction failures)
+    const handleSocketError = (data: any) => {
+      isSubmittingBidRef.current = false;
+      setIsSubmittingBid(false);
+      setBidError(data?.message || 'Real-time connection error occurred');
+      if (bidErrorTimeoutRef.current) clearTimeout(bidErrorTimeoutRef.current);
+      bidErrorTimeoutRef.current = setTimeout(() => setBidError(null), 6000);
     };
 
     // Handle timer sync & anti-sniping extension
@@ -238,7 +274,8 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
         setTimeRemaining(data.secondsLeft);
         if (data.antiSnipingExtended) {
           setSnipingNotice('Anti-sniping triggered! Timer extended by 60 seconds.');
-          setTimeout(() => setSnipingNotice(null), 6000);
+          if (snipingTimeoutRef.current) clearTimeout(snipingTimeoutRef.current);
+          snipingTimeoutRef.current = setTimeout(() => setSnipingNotice(null), 6000);
         }
       }
     };
@@ -255,14 +292,24 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
       if (data.auctionId === auctionId) {
         setTimeRemaining(0);
         setAuction((prev) => (prev ? { ...prev, status: data.status } : null));
-        setClosedNotice(
-          data.winnerId
-            ? `Auction ended! Winning bid: $${data.finalBid?.toLocaleString() || ''}`
-            : 'Auction ended with no winning bids.'
-        );
+        if (data.reason) {
+          setClosedNotice(
+            data.status === 'admin-terminated'
+              ? `Auction terminated by administrator: ${data.reason}`
+              : data.reason
+          );
+        } else {
+          setClosedNotice(
+            data.winnerId
+              ? `Auction ended! Winning bid: $${data.finalBid?.toLocaleString() || ''}`
+              : 'Auction ended with no winning bids.'
+          );
+        }
       }
     };
 
+    socket.on('connect', joinRoom);
+    socket.on('error', handleSocketError);
     socket.on('auction_state', handleAuctionState);
     socket.on('bid_updated', handleBidUpdated);
     socket.on('bid_rejected', handleBidRejected);
@@ -272,6 +319,8 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
     return () => {
       socket.emit('leave_auction', { auctionId });
+      socket.off('connect', joinRoom);
+      socket.off('error', handleSocketError);
       socket.off('auction_state', handleAuctionState);
       socket.off('bid_updated', handleBidUpdated);
       socket.off('bid_rejected', handleBidRejected);
@@ -279,7 +328,14 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
       socket.off('auction_ending_soon', handleEndingSoon);
       socket.off('auction_ended', handleAuctionEnded);
     };
-  }, [socket, auctionId]);
+  }, [socket, auctionId, user?.id]);
+
+  const sellerObj = typeof auction?.sellerId === 'object' ? auction.sellerId : null;
+  const normalizedSellerId =
+    typeof auction?.sellerId === 'string'
+      ? auction.sellerId
+      : sellerObj?._id || sellerObj?.id || '';
+  const isSeller = Boolean(user?.id && normalizedSellerId && normalizedSellerId.toString() === user.id);
 
   const handlePlaceBid = (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,13 +345,12 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
     if (!auction) return;
 
     const numBid = Number(bidAmount);
-    if (isNaN(numBid) || numBid <= auction.currentBid) {
+    if (!Number.isFinite(numBid) || numBid <= auction.currentBid) {
       setBidError(`Bid must be at least $${(auction.currentBid + 1).toLocaleString()}`);
       return;
     }
 
-    const sellerId = typeof auction.sellerId === 'object' ? auction.sellerId._id : auction.sellerId;
-    if (user?.id && sellerId && sellerId.toString() === user.id) {
+    if (isSeller) {
       setBidError('You cannot bid on your own auction listing');
       return;
     }
@@ -305,13 +360,12 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
       return;
     }
 
+    isSubmittingBidRef.current = true;
     setIsSubmittingBid(true);
     socket.emit('place_bid', {
       auctionId,
       amount: numBid,
     });
-
-    setBidAmount('');
   };
 
   const formatCountdown = (totalSec: number | null) => {
@@ -346,8 +400,6 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
   const isClosed = (timeRemaining ?? 0) <= 0 || auction.status !== 'live';
   const minRequiredBid = auction.currentBid + 1;
-  const sellerObj = typeof auction.sellerId === 'object' ? auction.sellerId : null;
-  const isSeller = Boolean(user?.id && sellerObj && (sellerObj._id === user.id || sellerObj.id === user.id));
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-6">
@@ -647,7 +699,12 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* File Dispute Dialog */}
-      <Dialog open={isDisputeOpen} onClose={() => setIsDisputeOpen(false)}>
+      <Dialog
+        open={isDisputeOpen}
+        onClose={() => {
+          if (!isSubmittingDispute) setIsDisputeOpen(false);
+        }}
+      >
         <DialogHeader>
           <DialogTitle>File a Dispute</DialogTitle>
           <DialogDescription>
