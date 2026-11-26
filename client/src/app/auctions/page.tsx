@@ -196,8 +196,8 @@ export default function AuctionsBrowsePage() {
 
       {/* Search & Filter Toolbar */}
       <div className="space-y-4">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap sm:flex-nowrap gap-2">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
             <Input
               type="text"
