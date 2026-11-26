@@ -12,7 +12,6 @@ class AuctionTimerService {
 
   init(io) {
     this.io = io;
-    // Check every second for countdown sync and auto-closing expired auctions
     if (!this.intervalId) {
       this.intervalId = setInterval(() => this.tick(), 1000);
       console.log('Auction Timer Service initialized (1s resolution)');
@@ -27,13 +26,10 @@ class AuctionTimerService {
   }
 
   async tick() {
-    // 1. Guard against executing queries when MongoDB is not connected
-    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
     if (mongoose.connection.readyState !== 1) {
       return;
     }
 
-    // 2. Prevent concurrent / overlapping tick executions
     if (this.isTicking) {
       return;
     }
@@ -42,18 +38,20 @@ class AuctionTimerService {
     try {
       const now = new Date();
 
-      // Find all live auctions
-      const liveAuctions = await Auction.find({ status: 'live' });
+      const query = Auction.find({ status: 'live' });
+      const liveAuctions =
+        query && typeof query.select === 'function'
+          ? await query
+              .select('_id endTime status bidCount highestBidderId currentBid sellerId title')
+              .lean()
+          : await query;
 
       for (const auction of liveAuctions) {
         const auctionId = auction._id.toString();
         const roomName = `auction:${auctionId}`;
-        const remainingSeconds = Math.max(
-          0,
-          Math.floor((new Date(auction.endTime).getTime() - now.getTime()) / 1000)
-        );
+        const msRemaining = new Date(auction.endTime).getTime() - now.getTime();
+        const remainingSeconds = Math.max(0, Math.ceil(msRemaining / 1000));
 
-        // 1. Broadcast time_remaining periodically to room
         if (this.io) {
           this.io.to(roomName).emit('time_remaining', {
             auctionId,
@@ -61,7 +59,6 @@ class AuctionTimerService {
           });
         }
 
-        // 2. 5-minute warning (300 seconds)
         if (remainingSeconds <= 300 && remainingSeconds > 0 && !this.warningSent.has(auctionId)) {
           this.warningSent.add(auctionId);
           if (this.io) {
@@ -69,13 +66,17 @@ class AuctionTimerService {
               auctionId,
               secondsLeft: remainingSeconds,
               message: 'Auction will end in less than 5 minutes!',
+              data: {
+                auctionId,
+                secondsLeft: remainingSeconds,
+              },
             });
           }
         }
 
-        // 3. Expiry check: if remainingSeconds === 0, close auction atomically
-        if (remainingSeconds === 0) {
-          await this.closeAuction(auction);
+        // Only close once endTime has genuinely elapsed
+        if (msRemaining <= 0) {
+          await this.closeAuction(auction, now);
         }
       }
     } catch (err) {
@@ -85,25 +86,31 @@ class AuctionTimerService {
     }
   }
 
-  async closeAuction(auction) {
+  async closeAuction(auction, now = new Date()) {
     try {
       const auctionId = auction._id.toString();
-      const finalStatus = auction.bidCount > 0 ? 'completed' : 'unsold';
 
-      // Atomically update status from 'live' to completed or unsold
-      const updated = await Auction.findOneAndUpdate(
-        { _id: auction._id, status: 'live' },
-        { $set: { status: finalStatus } },
+      // Atomically resolve completed vs unsold using committed DB bidCount and endTime <= now
+      let updated = await Auction.findOneAndUpdate(
+        { _id: auction._id, status: 'live', endTime: { $lte: now }, bidCount: { $gt: 0 } },
+        { $set: { status: 'completed' } },
         { new: true }
       );
 
+      if (!updated) {
+        updated = await Auction.findOneAndUpdate(
+          { _id: auction._id, status: 'live', endTime: { $lte: now }, bidCount: 0 },
+          { $set: { status: 'unsold' } },
+          { new: true }
+        );
+      }
+
       if (updated) {
+        const finalStatus = updated.status;
         console.log(`Auction ${auctionId} closed with status: ${finalStatus}`);
         this.warningSent.delete(auctionId);
 
-        // Send auction outcome notifications
         if (updated.bidCount > 0 && updated.highestBidderId) {
-          // Notify Winner
           notificationService
             .sendNotification({
               userId: updated.highestBidderId,
@@ -119,7 +126,6 @@ class AuctionTimerService {
             })
             .catch((err) => console.error('Failed to send auction_won notification:', err.message));
 
-          // Notify Seller (Sold)
           if (updated.sellerId) {
             notificationService
               .sendNotification({
@@ -137,7 +143,6 @@ class AuctionTimerService {
               .catch((err) => console.error('Failed to send auction_sold notification:', err.message));
           }
         } else if (updated.sellerId) {
-          // Notify Seller (Unsold)
           notificationService
             .sendNotification({
               userId: updated.sellerId,
@@ -171,4 +176,3 @@ class AuctionTimerService {
 
 export const auctionTimerService = new AuctionTimerService();
 export default auctionTimerService;
-

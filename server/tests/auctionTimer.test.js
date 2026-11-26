@@ -120,4 +120,102 @@ describe('AuctionTimerService Resilience & Concurrency Guard', () => {
     auctionTimerService.stop();
     assert.equal(auctionTimerService.intervalId, null, 'intervalId should be null after stop');
   });
+
+  test('tick() does not close early with 500ms left and emits ending-soon warning with nested data', async () => {
+    Object.defineProperty(mongoose.connection, 'readyState', {
+      value: 1,
+      configurable: true,
+      writable: true,
+    });
+
+    const emitted = [];
+    const origIo = auctionTimerService.io;
+    const origFindOneAndUpdate = Auction.findOneAndUpdate;
+    auctionTimerService.io = {
+      to(room) {
+        return {
+          emit(event, payload) {
+            emitted.push({ room, event, payload });
+          },
+        };
+      },
+    };
+    let closeCalled = false;
+    Auction.findOneAndUpdate = async () => {
+      closeCalled = true;
+      return null;
+    };
+
+    try {
+      const auctionId = '507f1f77bcf86cd799439055';
+      auctionTimerService.warningSent.delete(auctionId);
+
+      Auction.find = async () => [
+        {
+          _id: auctionId,
+          endTime: new Date(Date.now() + 500),
+          status: 'live',
+          bidCount: 0,
+          title: 'Lamp',
+        },
+      ];
+
+      await auctionTimerService.tick();
+
+      assert.equal(closeCalled, false);
+      const timeEvent = emitted.find((e) => e.event === 'time_remaining');
+      const warnEvent = emitted.find((e) => e.event === 'auction_ending_soon');
+      assert.equal(timeEvent.payload.secondsLeft, 1);
+      assert.equal(warnEvent.payload.data.auctionId, auctionId);
+    } finally {
+      auctionTimerService.io = origIo;
+      Auction.findOneAndUpdate = origFindOneAndUpdate;
+      auctionTimerService.warningSent.clear();
+    }
+  });
+
+  test('closeAuction uses atomic bidCount filter even when tick snapshot had bidCount 0', async () => {
+    const origFindOneAndUpdate = Auction.findOneAndUpdate;
+    const origIo = auctionTimerService.io;
+    const emitted = [];
+
+    auctionTimerService.io = {
+      to(room) {
+        return {
+          emit(event, payload) {
+            emitted.push({ room, event, payload });
+          },
+        };
+      },
+    };
+
+    Auction.findOneAndUpdate = async (filter) => {
+      if (filter.bidCount && typeof filter.bidCount === 'object' && filter.bidCount.$gt === 0) {
+        return {
+          _id: filter._id,
+          status: 'completed',
+          bidCount: 1,
+          currentBid: 200,
+          highestBidderId: null,
+          sellerId: null,
+          title: 'Camera',
+        };
+      }
+      return null;
+    };
+
+    try {
+      await auctionTimerService.closeAuction({
+        _id: '507f1f77bcf86cd799439066',
+        bidCount: 0,
+      });
+
+      const ended = emitted.find((e) => e.event === 'auction_ended');
+      assert.equal(ended.payload.status, 'completed');
+      assert.equal(ended.payload.finalBid, 200);
+    } finally {
+      Auction.findOneAndUpdate = origFindOneAndUpdate;
+      auctionTimerService.io = origIo;
+    }
+  });
 });
