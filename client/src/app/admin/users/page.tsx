@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Segmented } from '@/components/ui/segmented';
 import {
   Users,
   Search,
@@ -161,15 +162,16 @@ export default function AdminUsersPage() {
       {/* Title & Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-montserrat text-lg font-bold tracking-tight text-foreground">
-            User Moderation
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            User moderation
           </h2>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             Search, inspect registered accounts, and manage user suspensions
           </p>
         </div>
 
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={() => fetchUsers(page, submittedSearch, statusFilter, roleFilter)}
@@ -183,10 +185,7 @@ export default function AdminUsersPage() {
 
       {/* Notification Banner */}
       {notification && (
-        <Alert
-          tone={notification.type === 'success' ? 'success' : 'danger'}
-          onClose={() => setNotification(null)}
-        >
+        <Alert tone={notification.type === 'success' ? 'success' : 'danger'}>
           {notification.message}
         </Alert>
       )}
@@ -195,8 +194,9 @@ export default function AdminUsersPage() {
       <div className="card-chai p-4 space-y-3">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Search users"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by display name or email address..."
@@ -208,50 +208,44 @@ export default function AdminUsersPage() {
           </Button>
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-neutral-800/60 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60 text-xs">
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500 font-medium flex items-center gap-1">
+            <span className="text-muted-foreground font-medium flex items-center gap-1">
               <Filter className="size-3" /> Status:
             </span>
-            {(['all', 'active', 'suspended'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatusFilter(s);
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
-                  statusFilter === s
-                    ? 'bg-neutral-800 text-foreground border border-neutral-700'
-                    : 'text-neutral-500 hover:text-foreground'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+            <Segmented<'all' | 'active' | 'suspended'>
+              label="User status filter"
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'suspended', label: 'Suspended' },
+              ]}
+              value={statusFilter}
+              onChange={(s) => {
+                setStatusFilter(s);
+                setPage(1);
+              }}
+            />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500 font-medium">Role:</span>
-            {(['all', 'user', 'admin'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => {
-                  setRoleFilter(r);
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
-                  roleFilter === r
-                    ? 'bg-neutral-800 text-foreground border border-neutral-700'
-                    : 'text-neutral-500 hover:text-foreground'
-                }`}
-              >
-                {r === 'all' ? 'All Roles' : r}
-              </button>
-            ))}
+            <span className="text-muted-foreground font-medium">Role:</span>
+            <Segmented<'all' | 'user' | 'admin'>
+              label="User role filter"
+              options={[
+                { value: 'all', label: 'All roles' },
+                { value: 'user', label: 'User' },
+                { value: 'admin', label: 'Admin' },
+              ]}
+              value={roleFilter}
+              onChange={(r) => {
+                setRoleFilter(r);
+                setPage(1);
+              }}
+            />
           </div>
 
-          <span className="text-neutral-500 text-[11px]">
+          <span className="text-muted-foreground text-[11px]">
             {total} total account{total === 1 ? '' : 's'}
           </span>
         </div>
@@ -262,14 +256,14 @@ export default function AdminUsersPage() {
         {isLoading && users.length === 0 ? (
           <div className="p-8 space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-neutral-800/30 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-muted/40 rounded animate-pulse" />
             ))}
           </div>
         ) : users.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <Users className="size-10 mx-auto text-neutral-600" />
+            <Users className="size-10 mx-auto text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">No users found</p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Try adjusting your search criteria or status filters.
             </p>
           </div>
@@ -295,7 +289,7 @@ export default function AdminUsersPage() {
                     {/* Name & Avatar */}
                     <TableCell className="pl-4">
                       <div className="flex items-center gap-3">
-                        <div className="size-8 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-[11px] text-foreground border border-neutral-700/80 shrink-0">
+                        <div className="size-8 rounded-full bg-muted flex items-center justify-center font-bold text-[11px] text-foreground border border-border shrink-0 overflow-hidden">
                           {item.avatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -316,7 +310,7 @@ export default function AdminUsersPage() {
                               </Chip>
                             )}
                           </p>
-                          <span className="text-[10px] text-neutral-500 font-mono">
+                          <span className="text-[10px] text-muted-foreground font-mono">
                             ID: {item._id.slice(-6)}
                           </span>
                         </div>
@@ -324,35 +318,33 @@ export default function AdminUsersPage() {
                     </TableCell>
 
                     {/* Email */}
-                    <TableCell className="text-neutral-300 font-mono text-[11px]">
+                    <TableCell className="text-muted-foreground font-mono text-[11px]">
                       {item.email}
                     </TableCell>
 
                     {/* Role */}
                     <TableCell>
-                      <Chip
-                        tone={item.role === 'admin' ? 'special' : 'default'}
-                        icon={item.role === 'admin' ? <ShieldCheck className="size-3" /> : undefined}
-                      >
-                        {item.role}
+                      <Chip tone={item.role === 'admin' ? 'special' : 'default'}>
+                        {item.role === 'admin' && <ShieldCheck className="size-3" />}
+                        <span className="capitalize">{item.role}</span>
                       </Chip>
                     </TableCell>
 
                     {/* Status */}
                     <TableCell>
                       {item.isSuspended ? (
-                        <Chip tone="danger" icon={<UserX className="size-3" />}>
-                          Suspended
+                        <Chip tone="danger">
+                          <UserX className="size-3" /> Suspended
                         </Chip>
                       ) : (
-                        <Chip tone="success" icon={<UserCheck className="size-3" />}>
-                          Active
+                        <Chip tone="success">
+                          <UserCheck className="size-3" /> Active
                         </Chip>
                       )}
                     </TableCell>
 
                     {/* Joined Date */}
-                    <TableCell className="text-neutral-400 text-[11px]">
+                    <TableCell className="text-muted-foreground text-[11px]">
                       {new Date(item.createdAt).toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'short',
@@ -363,20 +355,22 @@ export default function AdminUsersPage() {
                     {/* Actions */}
                     <TableCell className="pr-4 text-right">
                       {isCurrentAdmin ? (
-                        <span className="text-[11px] text-neutral-600 italic">No action</span>
+                        <span className="text-[11px] text-muted-foreground italic">No action</span>
                       ) : item.isSuspended ? (
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           disabled={isActionLoading}
                           onClick={() => handleReactivate(item._id, item.displayName)}
-                          className="text-[11px] h-7 px-2.5 text-emerald-400 hover:text-emerald-300 border-emerald-500/30 hover:border-emerald-500/50"
+                          className="text-[11px] h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:border-emerald-500/50"
                         >
                           <UserCheck className="size-3 mr-1" />
                           {isActionLoading ? 'Saving...' : 'Reactivate'}
                         </Button>
                       ) : (
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           disabled={isActionLoading}
@@ -384,7 +378,7 @@ export default function AdminUsersPage() {
                             setModalError(null);
                             setConfirmSuspendUser({ id: item._id, displayName: item.displayName });
                           }}
-                          className="text-[11px] h-7 px-2.5 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
+                          className="text-[11px] h-7 px-2.5 text-red-600 dark:text-red-400 border-red-500/30 hover:border-red-500/50"
                         >
                           <UserX className="size-3 mr-1" />
                           {isActionLoading ? 'Saving...' : 'Suspend'}
@@ -400,12 +394,13 @@ export default function AdminUsersPage() {
 
         {/* Pagination Footer */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between p-3.5 border-t border-neutral-800 bg-neutral-900/40 text-xs">
-            <span className="text-neutral-500">
+          <div className="flex items-center justify-between p-3.5 border-t border-border bg-card-fill text-xs">
+            <span className="text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -415,6 +410,7 @@ export default function AdminUsersPage() {
                 <ChevronLeft className="size-3.5 mr-1" /> Previous
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -431,8 +427,7 @@ export default function AdminUsersPage() {
       <ConfirmDialog
         open={!!confirmSuspendUser}
         title="Suspend user account"
-        description={`Are you sure you want to suspend "${confirmSuspendUser?.displayName}"? Their active sessions and socket connections will be immediately terminated.`}
-        confirmLabel="Suspend User"
+        confirmLabel="Suspend user"
         tone="danger"
         busy={actionUserId === confirmSuspendUser?.id}
         error={modalError}
@@ -443,7 +438,9 @@ export default function AdminUsersPage() {
             setModalError(null);
           }
         }}
-      />
+      >
+        Are you sure you want to suspend &quot;{confirmSuspendUser?.displayName}&quot;? Their active sessions and socket connections will be immediately terminated.
+      </ConfirmDialog>
     </div>
   );
 }

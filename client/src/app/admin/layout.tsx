@@ -42,15 +42,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <>
         <div className="max-w-md mx-auto my-16 p-8 text-center space-y-4 card-chai">
           <ShieldAlert className="size-12 mx-auto text-red-500" />
-          <h2 className="font-montserrat text-xl font-bold text-foreground">Access Denied</h2>
-          <p className="text-xs text-neutral-500">
+          <h1 className="text-xl font-medium text-foreground">Access denied</h1>
+          <p className="text-xs text-muted-foreground">
             This area is restricted to system administrators only.
           </p>
-          <Link href="/" className="inline-block pt-2">
-            <Button variant="soft" size="sm" iconRight={false}>
-              <ArrowLeft className="size-4 mr-1" /> Return Home
+          <div className="pt-2">
+            <Button asChild variant="soft" size="sm">
+              <Link href="/">
+                <ArrowLeft className="size-4 mr-1" /> Return home
+              </Link>
             </Button>
-          </Link>
+          </div>
         </div>
         {children}
       </>
@@ -65,30 +67,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-6">
       {/* Admin Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg border border-neutral-300 dark:border-neutral-800 text-foreground">
+            <span className="p-1.5 rounded-lg border border-border text-foreground">
               <ShieldAlert className="size-4" />
             </span>
-            <h1 className="font-montserrat text-2xl font-bold tracking-tight text-foreground">
-              Admin Portal
+            <h1 className="text-2xl font-medium tracking-tight text-foreground">
+              Admin portal
             </h1>
           </div>
-          <p className="text-xs text-neutral-500">
-            Platform monitoring, account management, auction moderation & dispute resolution
+          <p className="text-xs text-muted-foreground">
+            Platform monitoring, account management, auction moderation &amp; dispute resolution
           </p>
         </div>
 
-        <Link href="/" className="text-xs text-neutral-500 hover:text-foreground flex items-center gap-1 transition-colors">
+        <Link href="/" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
           <ArrowLeft className="size-3.5" /> Back to store
         </Link>
       </div>
 
       {/* Admin Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-neutral-200 dark:border-neutral-800/80">
+      <nav aria-label="Admin sections" className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-border/80">
         {navItems.map((item) => {
           const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -99,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${
                 isActive
                   ? 'bg-neutral-900 text-white dark:bg-white dark:text-black'
-                  : 'text-neutral-500 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
               }`}
             >
               <Icon className="size-3.5" />
@@ -107,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           );
         })}
-      </div>
+      </nav>
 
       {/* Main Admin Page Content */}
       <main>{children}</main>

@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Chip } from '@/components/ui/chip';
 import { Alert } from '@/components/ui/alert';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogActions } from '@/components/ui/dialog';
+import { Segmented } from '@/components/ui/segmented';
 import {
   Gavel,
   Search,
@@ -233,35 +234,15 @@ export default function AdminAuctionsPage() {
   const getStatusBadge = (status: AuctionItem['status']) => {
     switch (status) {
       case 'live':
-        return (
-          <Chip tone="success" dot>
-            Live
-          </Chip>
-        );
+        return <Chip tone="success">Live</Chip>;
       case 'completed':
-        return (
-          <Chip tone="default">
-            Completed
-          </Chip>
-        );
+        return <Chip tone="default">Completed</Chip>;
       case 'unsold':
-        return (
-          <Chip tone="default">
-            Unsold
-          </Chip>
-        );
+        return <Chip tone="default">Unsold</Chip>;
       case 'admin-terminated':
-        return (
-          <Chip tone="danger">
-            Terminated
-          </Chip>
-        );
+        return <Chip tone="danger">Terminated</Chip>;
       default:
-        return (
-          <Chip tone="default">
-            {status}
-          </Chip>
-        );
+        return <Chip tone="default">{status}</Chip>;
     }
   };
 
@@ -274,15 +255,16 @@ export default function AdminAuctionsPage() {
       {/* Title & Refresh */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-montserrat text-lg font-bold tracking-tight text-foreground">
-            Auction Moderation
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Auction moderation
           </h2>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             Review active and closed listings, flag suspicious activity, or terminate items
           </p>
         </div>
 
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={() => fetchAuctions(page, submittedSearch, statusFilter, flaggedOnly)}
@@ -296,10 +278,7 @@ export default function AdminAuctionsPage() {
 
       {/* Notification Banner */}
       {notification && (
-        <Alert
-          tone={notification.type === 'success' ? 'success' : 'danger'}
-          onClose={() => setNotification(null)}
-        >
+        <Alert tone={notification.type === 'success' ? 'success' : 'danger'}>
           {notification.message}
         </Alert>
       )}
@@ -308,8 +287,9 @@ export default function AdminAuctionsPage() {
       <div className="card-chai p-4 space-y-3">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Search auctions"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by title, description, or seller name/email..."
@@ -321,46 +301,46 @@ export default function AdminAuctionsPage() {
           </Button>
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-neutral-800/60 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-neutral-500 font-medium flex items-center gap-1">
+            <span className="text-muted-foreground font-medium flex items-center gap-1">
               <Filter className="size-3" /> Status:
             </span>
-            {['all', 'live', 'completed', 'unsold', 'admin-terminated'].map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatusFilter(s);
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
-                  statusFilter === s
-                    ? 'bg-neutral-800 text-foreground border border-neutral-700'
-                    : 'text-neutral-500 hover:text-foreground'
-                }`}
-              >
-                {s.replace('-', ' ')}
-              </button>
-            ))}
+            <Segmented<string>
+              label="Auction status filter"
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'live', label: 'Live' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'unsold', label: 'Unsold' },
+                { value: 'admin-terminated', label: 'Admin terminated' },
+              ]}
+              value={statusFilter}
+              onChange={(s) => {
+                setStatusFilter(s);
+                setPage(1);
+              }}
+            />
           </div>
 
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-neutral-400 hover:text-foreground">
+            <label htmlFor="flagged-only-filter" className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground">
               <input
+                id="flagged-only-filter"
                 type="checkbox"
                 checked={flaggedOnly}
                 onChange={(e) => {
                   setFlaggedOnly(e.target.checked);
                   setPage(1);
                 }}
-                className="rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-0"
+                className="rounded border-border bg-background text-brand focus:ring-0"
               />
               <span className="flex items-center gap-1">
-                <Flag className="size-3 text-red-400" /> Flagged only
+                <Flag className="size-3 text-red-500" /> Flagged only
               </span>
             </label>
 
-            <span className="text-neutral-500 text-[11px]">
+            <span className="text-muted-foreground text-[11px]">
               {total} auction{total === 1 ? '' : 's'}
             </span>
           </div>
@@ -372,14 +352,14 @@ export default function AdminAuctionsPage() {
         {isLoading && auctions.length === 0 ? (
           <div className="p-8 space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-neutral-800/30 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-muted/40 rounded animate-pulse" />
             ))}
           </div>
         ) : auctions.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <Gavel className="size-10 mx-auto text-neutral-600" />
+            <Gavel className="size-10 mx-auto text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">No auctions found</p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               No listings match the selected filters or query.
             </p>
           </div>
@@ -389,10 +369,10 @@ export default function AdminAuctionsPage() {
               <TableRow>
                 <TableHead className="pl-4">Item</TableHead>
                 <TableHead>Seller</TableHead>
-                <TableHead>Current Bid</TableHead>
+                <TableHead>Current bid</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Flags</TableHead>
-                <TableHead className="pr-4 text-right">Moderation Actions</TableHead>
+                <TableHead className="pr-4 text-right">Moderation actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -404,7 +384,7 @@ export default function AdminAuctionsPage() {
                     {/* Item Title & Thumbnail */}
                     <TableCell className="pl-4 max-w-xs">
                       <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-lg bg-neutral-800 overflow-hidden border border-neutral-800 shrink-0">
+                        <div className="size-10 rounded-lg bg-muted overflow-hidden border border-border shrink-0">
                           {item.images && item.images.length > 0 ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -413,7 +393,7 @@ export default function AdminAuctionsPage() {
                               className="size-full object-cover"
                             />
                           ) : (
-                            <div className="size-full flex items-center justify-center text-neutral-600">
+                            <div className="size-full flex items-center justify-center text-muted-foreground">
                               <Gavel className="size-4" />
                             </div>
                           )}
@@ -422,12 +402,12 @@ export default function AdminAuctionsPage() {
                           <Link
                             href={`/auctions/${item._id}`}
                             target="_blank"
-                            className="font-semibold text-foreground hover:text-amber-400 flex items-center gap-1 group truncate"
+                            className="font-semibold text-foreground hover:text-yellow-800 dark:hover:text-orange-100 flex items-center gap-1 group truncate"
                           >
                             <span className="truncate">{item.title}</span>
                             <ExternalLink className="size-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </Link>
-                          <p className="text-[10px] text-neutral-500 font-mono">
+                          <p className="text-[10px] text-muted-foreground font-mono">
                             ID: {item._id.slice(-6)} • {item.bidCount || 0} bids
                           </p>
                         </div>
@@ -439,7 +419,7 @@ export default function AdminAuctionsPage() {
                       <p className="text-foreground font-medium text-[11px]">
                         {item.sellerId?.displayName || 'Unknown'}
                       </p>
-                      <p className="text-[10px] text-neutral-500 font-mono truncate max-w-[120px]">
+                      <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
                         {item.sellerId?.email || 'N/A'}
                       </p>
                     </TableCell>
@@ -449,7 +429,7 @@ export default function AdminAuctionsPage() {
                       <span className="text-foreground font-bold">
                         ${(item.currentBid || item.startingBid || 0).toLocaleString()}
                       </span>
-                      <span className="block text-[10px] text-neutral-500">
+                      <span className="block text-[10px] text-muted-foreground">
                         Start: ${(item.startingBid || 0).toLocaleString()}
                       </span>
                     </TableCell>
@@ -461,17 +441,17 @@ export default function AdminAuctionsPage() {
                     <TableCell>
                       {item.isFlagged ? (
                         <div className="space-y-0.5">
-                          <Chip tone="danger" icon={<Flag className="size-2.5 fill-red-400" />}>
-                            Flagged
+                          <Chip tone="danger">
+                            <Flag className="size-2.5" /> Flagged
                           </Chip>
                           {item.flagReason && (
-                            <p className="text-[10px] text-neutral-400 line-clamp-1 max-w-[140px]" title={item.flagReason}>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1 max-w-[140px]" title={item.flagReason}>
                               {item.flagReason}
                             </p>
                           )}
                         </div>
                       ) : (
-                        <span className="text-[11px] text-neutral-600">None</span>
+                        <span className="text-[11px] text-muted-foreground">None</span>
                       )}
                     </TableCell>
 
@@ -480,6 +460,7 @@ export default function AdminAuctionsPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Flag / Unflag Button */}
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           disabled={isActionLoading}
@@ -490,17 +471,19 @@ export default function AdminAuctionsPage() {
                           }}
                           className={`text-[11px] h-7 px-2 ${
                             item.isFlagged
-                              ? 'text-amber-400 border-amber-500/30 hover:border-amber-500/50'
-                              : 'text-neutral-400 hover:text-foreground'
+                              ? 'text-yellow-800 dark:text-orange-100 border-brand/40'
+                              : 'text-muted-foreground hover:text-foreground'
                           }`}
-                          title={item.isFlagged ? 'Review / Unflag' : 'Flag Listing'}
+                          aria-label={item.isFlagged ? `Review or unflag ${item.title}` : `Flag ${item.title}`}
+                          title={item.isFlagged ? 'Review / unflag' : 'Flag listing'}
                         >
-                          <Flag className={`size-3 ${item.isFlagged ? 'fill-amber-400' : ''}`} />
+                          <Flag className="size-3" />
                         </Button>
 
                         {/* Terminate Button (Only for live auctions) */}
                         {item.status === 'live' && (
                           <Button
+                            type="button"
                             variant="outline"
                             size="sm"
                             disabled={isActionLoading}
@@ -509,7 +492,7 @@ export default function AdminAuctionsPage() {
                               setTerminateDialogAuction(item);
                               setTerminateReason('');
                             }}
-                            className="text-[11px] h-7 px-2 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50"
+                            className="text-[11px] h-7 px-2 text-red-600 dark:text-red-400 border-red-500/30 hover:border-red-500/50"
                             title="Force-terminate auction"
                           >
                             <StopCircle className="size-3 mr-1" />
@@ -519,6 +502,7 @@ export default function AdminAuctionsPage() {
 
                         {/* Delete Button */}
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           disabled={isActionLoading}
@@ -527,7 +511,8 @@ export default function AdminAuctionsPage() {
                             setDeleteDialogAuction(item);
                             setDeleteReason('');
                           }}
-                          className="text-[11px] h-7 px-2 text-neutral-500 hover:text-red-400 border-neutral-800 hover:border-red-500/30"
+                          className="text-[11px] h-7 px-2 text-muted-foreground hover:text-red-500 border-border hover:border-red-500/30"
+                          aria-label={`Delete ${item.title}`}
                           title="Delete listing completely"
                         >
                           <Trash2 className="size-3" />
@@ -543,12 +528,13 @@ export default function AdminAuctionsPage() {
 
         {/* Pagination Footer */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between p-3.5 border-t border-neutral-800 bg-neutral-900/40 text-xs">
-            <span className="text-neutral-500">
+          <div className="flex items-center justify-between p-3.5 border-t border-border bg-card-fill text-xs">
+            <span className="text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -558,6 +544,7 @@ export default function AdminAuctionsPage() {
                 <ChevronLeft className="size-3.5 mr-1" /> Previous
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -581,45 +568,36 @@ export default function AdminAuctionsPage() {
               setModalError(null);
             }
           }}
+          title="Force-terminate auction"
+          description={`Instantly close active bidding for "${terminateDialogAuction.title}"`}
+          busy={actionId === terminateDialogAuction._id}
         >
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
-                <StopCircle className="size-5" />
-              </span>
-              <div>
-                <DialogTitle>Force-Terminate Auction</DialogTitle>
-                <DialogDescription>
-                  Instantly close active bidding for &quot;{terminateDialogAuction.title}&quot;
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
           {modalError && (
-            <div className="mb-3">
+            <div className="mt-3">
               <Alert tone="danger">{modalError}</Alert>
             </div>
           )}
 
-          <p className="text-xs text-neutral-400 leading-relaxed">
-            This action terminates the auction immediately. Connected clients in the auction room will receive the <code className="text-red-400">auction_ended</code> socket event and the seller will be notified.
+          <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+            This action terminates the auction immediately. Connected clients in the auction room will receive the <code className="text-red-500">auction_ended</code> socket event and the seller will be notified.
           </p>
 
           <div className="mt-3">
-            <label className="block text-xs font-medium text-neutral-400 mb-1">
-              Termination Reason
+            <label htmlFor="terminate-reason-input" className="block text-xs font-medium text-muted-foreground mb-1">
+              Termination reason
             </label>
             <Input
+              id="terminate-reason-input"
               value={terminateReason}
               onChange={(e) => setTerminateReason(e.target.value)}
-              placeholder="e.g. Terms of Service violation, duplicate listing..."
+              placeholder="e.g. Terms of service violation, duplicate listing..."
               className="text-xs"
             />
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogActions>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               disabled={actionId === terminateDialogAuction._id}
@@ -634,15 +612,16 @@ export default function AdminAuctionsPage() {
               Cancel
             </Button>
             <Button
+              type="button"
               variant="danger"
               size="sm"
               onClick={handleTerminateConfirm}
               disabled={actionId === terminateDialogAuction._id}
               className="text-xs"
             >
-              {actionId === terminateDialogAuction._id ? 'Terminating...' : 'Confirm Termination'}
+              {actionId === terminateDialogAuction._id ? 'Terminating...' : 'Confirm termination'}
             </Button>
-          </DialogFooter>
+          </DialogActions>
         </Dialog>
       )}
 
@@ -656,35 +635,23 @@ export default function AdminAuctionsPage() {
               setModalError(null);
             }
           }}
+          title={flagDialogAuction.isFlagged ? 'Review / remove flag' : 'Flag listing for review'}
+          description={flagDialogAuction.title}
+          busy={actionId === flagDialogAuction._id}
         >
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl border border-neutral-700 text-foreground bg-neutral-800">
-                <Flag className="size-5" />
-              </span>
-              <div>
-                <DialogTitle>
-                  {flagDialogAuction.isFlagged ? 'Review / Remove Flag' : 'Flag Listing for Review'}
-                </DialogTitle>
-                <DialogDescription>
-                  {flagDialogAuction.title}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
           {modalError && (
-            <div className="mb-3">
+            <div className="mt-3">
               <Alert tone="danger">{modalError}</Alert>
             </div>
           )}
 
           {!flagDialogAuction.isFlagged ? (
-            <div className="mt-2">
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                Reason for Flagging
+            <div className="mt-3">
+              <label htmlFor="flag-reason-input" className="block text-xs font-medium text-muted-foreground mb-1">
+                Reason for flagging
               </label>
               <Input
+                id="flag-reason-input"
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
                 placeholder="e.g. Suspicious bids, counterfeit risk, prohibited item..."
@@ -692,13 +659,14 @@ export default function AdminAuctionsPage() {
               />
             </div>
           ) : (
-            <p className="text-xs text-neutral-300 mt-2">
+            <p className="text-xs text-muted-foreground mt-3">
               This listing is currently flagged. Clicking confirm will clear the flag status.
             </p>
           )}
 
-          <DialogFooter className="mt-4">
+          <DialogActions>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               disabled={actionId === flagDialogAuction._id}
@@ -713,15 +681,16 @@ export default function AdminAuctionsPage() {
               Cancel
             </Button>
             <Button
-              variant="solid"
+              type="button"
+              variant="soft"
               size="sm"
               onClick={handleFlagSubmit}
               disabled={actionId === flagDialogAuction._id}
               className="text-xs"
             >
-              {flagDialogAuction.isFlagged ? 'Remove Flag' : 'Flag Listing'}
+              {flagDialogAuction.isFlagged ? 'Remove flag' : 'Flag listing'}
             </Button>
-          </DialogFooter>
+          </DialogActions>
         </Dialog>
       )}
 
@@ -735,36 +704,26 @@ export default function AdminAuctionsPage() {
               setModalError(null);
             }
           }}
+          title="Delete auction listing"
+          description={`Permanently remove "${deleteDialogAuction.title}"`}
+          busy={actionId === deleteDialogAuction._id}
         >
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl border border-red-500/40 text-red-500 bg-red-500/10">
-                <Trash2 className="size-5" />
-              </span>
-              <div>
-                <DialogTitle>Delete Auction Listing</DialogTitle>
-                <DialogDescription>
-                  Permanently remove &quot;{deleteDialogAuction.title}&quot;
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
           {modalError && (
-            <div className="mb-3">
+            <div className="mt-3">
               <Alert tone="danger">{modalError}</Alert>
             </div>
           )}
 
-          <p className="text-xs text-red-400/90 leading-relaxed">
+          <p className="mt-3 text-xs text-red-600 dark:text-red-400 leading-relaxed">
             Warning: This permanently removes the listing from the database and notifies the seller. This action cannot be undone.
           </p>
 
           <div className="mt-3">
-            <label className="block text-xs font-medium text-neutral-400 mb-1">
-              Removal Reason
+            <label htmlFor="delete-reason-input" className="block text-xs font-medium text-muted-foreground mb-1">
+              Removal reason
             </label>
             <Input
+              id="delete-reason-input"
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
               placeholder="e.g. Fraudulent listing, prohibited goods..."
@@ -772,8 +731,9 @@ export default function AdminAuctionsPage() {
             />
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogActions>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               disabled={actionId === deleteDialogAuction._id}
@@ -788,15 +748,16 @@ export default function AdminAuctionsPage() {
               Cancel
             </Button>
             <Button
+              type="button"
               variant="danger"
               size="sm"
               onClick={handleDeleteConfirm}
               disabled={actionId === deleteDialogAuction._id}
               className="text-xs"
             >
-              {actionId === deleteDialogAuction._id ? 'Deleting...' : 'Delete Listing'}
+              {actionId === deleteDialogAuction._id ? 'Deleting...' : 'Delete listing'}
             </Button>
-          </DialogFooter>
+          </DialogActions>
         </Dialog>
       )}
     </div>
