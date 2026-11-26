@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 
 export default function LoginPage() {
@@ -47,24 +47,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative isolate overflow-x-clip">
+    <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative isolate overflow-x-clip">
       <div className="w-full max-w-md">
-        <Card className="card-chai">
-          <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
-            <CardDescription className="text-sm text-neutral-600 dark:text-neutral-400">
-              Sign in to manage your listings and place <span className="highlight">instant live bids</span> on auctions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="sm:opacity-100">
+          <CardBody className="p-6 sm:p-8 gap-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome back</h1>
+              <p className="text-sm text-muted-foreground">
+                Sign in to manage your listings and place <span className="highlight">instant live bids</span> on auctions.
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && <Alert tone="danger">{error}</Alert>}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                <label htmlFor="login-email" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Email address
                 </label>
                 <Input
+                  id="login-email"
                   type="email"
                   placeholder="name@example.com"
                   value={email}
@@ -75,17 +77,18 @@ export default function LoginPage() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  <label htmlFor="login-password" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                     Password
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-brand"
+                    className="text-xs text-muted-foreground hover:text-brand"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <Input
+                  id="login-password"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
@@ -104,8 +107,8 @@ export default function LoginPage() {
                 {isSubmitting ? 'Signing in...' : 'Sign in'}
               </Button>
 
-              <p className="text-center text-xs text-neutral-500 dark:text-neutral-400 pt-2">
-                Don't have an account yet?{' '}
+              <p className="text-center text-xs text-muted-foreground pt-2">
+                Don&apos;t have an account yet?{' '}
                 <Link
                   href="/register"
                   className="font-medium text-foreground hover:text-brand underline underline-offset-4"
@@ -114,7 +117,7 @@ export default function LoginPage() {
                 </Link>
               </p>
             </form>
-          </CardContent>
+          </CardBody>
         </Card>
       </div>
     </div>

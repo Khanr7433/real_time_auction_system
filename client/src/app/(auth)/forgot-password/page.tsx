@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 
 function ForgotPasswordForm() {
@@ -83,145 +83,148 @@ function ForgotPasswordForm() {
   };
 
   return (
-    <Card className="card-chai">
-      <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-2xl font-semibold tracking-tight">
-          {step === 'success' ? 'Password reset complete' : 'Reset your password'}
-        </CardTitle>
-        <CardDescription className="text-sm text-neutral-600 dark:text-neutral-400">
-          Recover access to your <span className="highlight">BidNow auction account</span>.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <div className="mb-4">
-            <Alert tone="danger">{error}</Alert>
-          </div>
-        )}
-        {message && (
-          <div className="mb-4">
-            <Alert tone="success">{message}</Alert>
-          </div>
-        )}
-
-        {step === 'request' && (
-          <form onSubmit={handleRequestReset} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                Account email
-              </label>
-              <Input
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+    <Card className="sm:opacity-100">
+      <CardBody className="p-6 sm:p-8 gap-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {step === 'success' ? 'Password reset complete' : 'Reset your password'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Recover access to your <span className="highlight">BidNow auction account</span>.
+          </p>
+        </div>
+        <div>
+          {error && (
+            <div className="mb-4">
+              <Alert tone="danger">{error}</Alert>
             </div>
-
-            <Button
-              type="submit"
-              variant="solid"
-              size="lg"
-              className="w-full mt-2"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Sending request...' : 'Send reset instructions'}
-            </Button>
-          </form>
-        )}
-
-        {step === 'reset' && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                Reset token
-              </label>
-              <Input
-                type="text"
-                placeholder="Enter reset token from your email"
-                value={resetToken}
-                onChange={(e) => setResetToken(e.target.value)}
-                required
-              />
-              <p className="text-[11px] text-neutral-500">
-                Open the reset link sent to your email or paste the reset token here.
-              </p>
+          )}
+          {message && (
+            <div className="mb-4">
+              <Alert tone="success">{message}</Alert>
             </div>
+          )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                New password
-              </label>
-              <Input
-                type="password"
-                placeholder="At least 8 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
+          {step === 'request' && (
+            <form onSubmit={handleRequestReset} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="forgot-email" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Account email
+                </label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-            <Button
-              type="submit"
-              variant="solid"
-              size="lg"
-              className="w-full mt-2"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Resetting password...' : 'Set new password'}
-            </Button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setMessage(null);
-                setStep('request');
-              }}
-              className="w-full text-center text-xs text-neutral-500 hover:text-foreground underline underline-offset-4 cursor-pointer"
-            >
-              Need a new reset email? Request again
-            </button>
-          </form>
-        )}
-
-        {step === 'success' && (
-          <div className="space-y-4 text-center">
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Your password has been changed. You can now log in with your new credentials.
-            </p>
-            <Link href="/login">
-              <Button variant="solid" size="lg" className="w-full">
-                Proceed to sign in
+              <Button
+                type="submit"
+                variant="solid"
+                size="lg"
+                className="w-full mt-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Sending request...' : 'Send reset instructions'}
               </Button>
+            </form>
+          )}
+
+          {step === 'reset' && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="forgot-token" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Reset token
+                </label>
+                <Input
+                  id="forgot-token"
+                  type="text"
+                  placeholder="Enter reset token from your email"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  required
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Open the reset link sent to your email or paste the reset token here.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="forgot-new-password" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  New password
+                </label>
+                <Input
+                  id="forgot-new-password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                variant="solid"
+                size="lg"
+                className="w-full mt-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Resetting password...' : 'Set new password'}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMessage(null);
+                  setStep('request');
+                }}
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer"
+              >
+                Need a new reset email? Request again
+              </button>
+            </form>
+          )}
+
+          {step === 'success' && (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Your password has been changed. You can now log in with your new credentials.
+              </p>
+              <Button asChild variant="solid" size="lg" className="w-full">
+                <Link href="/login">Proceed to sign in</Link>
+              </Button>
+            </div>
+          )}
+
+          <div className="pt-4 text-center">
+            <Link
+              href="/login"
+              className="text-xs text-muted-foreground hover:text-brand underline underline-offset-4"
+            >
+              Back to sign in
             </Link>
           </div>
-        )}
-
-        <div className="pt-4 text-center">
-          <Link
-            href="/login"
-            className="text-xs text-neutral-500 hover:text-brand underline underline-offset-4"
-          >
-            Back to sign in
-          </Link>
         </div>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative isolate overflow-x-clip">
+    <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative isolate overflow-x-clip">
       <div className="w-full max-w-md">
         <Suspense
           fallback={
-            <Card className="card-chai">
-              <CardContent className="py-12 text-center text-sm text-neutral-500">
+            <Card className="sm:opacity-100">
+              <CardBody className="py-12 text-center text-sm text-muted-foreground">
                 Loading password reset...
-              </CardContent>
+              </CardBody>
             </Card>
           }
         >

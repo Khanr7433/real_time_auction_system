@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 
 export default function RegisterPage() {
@@ -58,24 +58,26 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative isolate overflow-x-clip">
+    <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative isolate overflow-x-clip">
       <div className="w-full max-w-md">
-        <Card className="card-chai">
-          <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">Create your account</CardTitle>
-            <CardDescription className="text-sm text-neutral-600 dark:text-neutral-400">
-              Join BidNow to participate in <span className="highlight">live real-time auctions</span> with zero latency.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="sm:opacity-100">
+          <CardBody className="p-6 sm:p-8 gap-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Create your account</h1>
+              <p className="text-sm text-muted-foreground">
+                Join BidNow to participate in <span className="highlight">live real-time auctions</span> with zero latency.
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && <Alert tone="danger">{error}</Alert>}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                <label htmlFor="register-display-name" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Display name
                 </label>
                 <Input
+                  id="register-display-name"
                   type="text"
                   placeholder="e.g. Alex Morgan"
                   value={displayName}
@@ -85,10 +87,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                <label htmlFor="register-email" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Email address
                 </label>
                 <Input
+                  id="register-email"
                   type="email"
                   placeholder="alex@example.com"
                   value={email}
@@ -98,10 +101,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                <label htmlFor="register-password" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Password
                 </label>
                 <Input
+                  id="register-password"
                   type="password"
                   placeholder="At least 8 characters"
                   value={password}
@@ -111,10 +115,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                <label htmlFor="register-confirm-password" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Confirm password
                 </label>
                 <Input
+                  id="register-confirm-password"
                   type="password"
                   placeholder="Repeat your password"
                   value={confirmPassword}
@@ -133,7 +138,7 @@ export default function RegisterPage() {
                 {isSubmitting ? 'Creating account...' : 'Create account'}
               </Button>
 
-              <p className="text-center text-xs text-neutral-500 dark:text-neutral-400 pt-2">
+              <p className="text-center text-xs text-muted-foreground pt-2">
                 Already have an account?{' '}
                 <Link
                   href="/login"
@@ -143,7 +148,7 @@ export default function RegisterPage() {
                 </Link>
               </p>
             </form>
-          </CardContent>
+          </CardBody>
         </Card>
       </div>
     </div>
