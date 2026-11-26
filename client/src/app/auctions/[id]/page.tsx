@@ -16,10 +16,7 @@ import { LiveDot } from '@/components/ui/live-dot';
 import { Alert } from '@/components/ui/alert';
 import {
   Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
+  DialogActions,
 } from '@/components/ui/dialog';
 import {
   Clock,
@@ -389,11 +386,11 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
     return (
       <div className="max-w-4xl mx-auto p-6 sm:p-12 text-center space-y-4">
         <p className="text-base text-red-500">{error || 'Auction not found'}</p>
-        <Link href="/auctions">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/auctions">
             <ArrowLeft className="size-4 mr-1" /> Back to auctions
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -402,7 +399,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const minRequiredBid = auction.currentBid + 1;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-6">
       {/* Top Navigation */}
       <div className="flex items-center justify-between">
         <Link
@@ -412,31 +409,31 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           <ArrowLeft className="size-3.5" /> Back to all listings
         </Link>
         <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-black/40">
-            <LiveDot tone={isConnected ? 'success' : 'warning'} />
+          <Chip tone={isConnected ? 'success' : 'default'}>
+            <LiveDot tone={isConnected ? 'success' : 'special'} />
             <span>{isConnected ? 'Live updates' : 'Connecting'}</span>
-          </div>
-          <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+          </Chip>
+          <Chip tone="default" className="capitalize">
             {auction.condition}
-          </span>
+          </Chip>
         </div>
       </div>
 
       {/* Notifications and Alerts */}
       {snipingNotice && (
-        <Alert tone="warning" title="Anti-Sniping Active">
+        <Alert tone="warning" title="Anti-sniping active">
           {snipingNotice}
         </Alert>
       )}
 
       {endingSoonNotice && (
-        <Alert tone="danger" title="Auction Ending Soon">
+        <Alert tone="danger" title="Auction ending soon">
           {endingSoonNotice}
         </Alert>
       )}
 
       {closedNotice && (
-        <Alert tone="info" title="Auction Closed">
+        <Alert tone="info" title="Auction closed">
           {closedNotice}
         </Alert>
       )}
@@ -464,6 +461,8 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
               {auction.images.map((img, idx) => (
                 <button
                   key={idx}
+                  type="button"
+                  aria-label={`View image ${idx + 1}`}
                   onClick={() => setSelectedImage(img)}
                   className={`relative size-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                     selectedImage === img
@@ -483,7 +482,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           )}
 
           {/* Item Description Card */}
-          <Card className="space-y-3">
+          <Card className="p-6 space-y-3 sm:opacity-100">
             <h2 className="font-display font-semibold text-lg text-foreground">About this item</h2>
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 whitespace-pre-line">
               {auction.description}
@@ -491,10 +490,10 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           </Card>
 
           {/* Bid History Ledger Card */}
-          <Card className="space-y-4">
+          <Card className="p-6 space-y-4 sm:opacity-100">
             <div className="flex items-center justify-between">
               <h2 className="font-display font-semibold text-lg text-foreground flex items-center gap-2">
-                <History className="size-4.5 text-neutral-400" /> Live Bid Ledger
+                <History className="size-4.5 text-neutral-400" /> Live bid ledger
               </h2>
               <Chip tone="default">
                 {bidHistory.length} {bidHistory.length === 1 ? 'bid' : 'bids'}
@@ -524,7 +523,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-montserrat font-bold text-sm text-foreground">
+                      <span className="font-display font-bold text-sm text-foreground">
                         ${item.amount.toLocaleString()}
                       </span>
                       <span className="text-[11px] text-neutral-400">
@@ -544,13 +543,13 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
 
         {/* Right Column: Bidding Action Card (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <Card className="space-y-6">
+          <Card className="p-6 space-y-6 sm:opacity-100">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs text-neutral-500">
                 <Tag className="size-3.5" />
                 <span>{auction.category}</span>
               </div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground leading-snug">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-snug">
                 {auction.title}
               </h1>
             </div>
@@ -612,17 +611,15 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                   <p className="text-xs text-neutral-600 dark:text-neutral-400">
                     You must sign in to place live bids on this listing.
                   </p>
-                  <Link href="/login" className="block">
-                    <Button variant="solid" size="md" className="w-full">
-                      Sign in to bid
-                    </Button>
-                  </Link>
+                  <Button asChild variant="solid" size="md" className="w-full">
+                    <Link href="/login">Sign in to bid</Link>
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handlePlaceBid} className="space-y-3">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      <label htmlFor="bid-amount-input" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                         Your bid amount ($)
                       </label>
                       <span className="text-[11px] text-neutral-500">
@@ -630,6 +627,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
                       </span>
                     </div>
                     <Input
+                      id="bid-amount-input"
                       type="number"
                       min={minRequiredBid}
                       step="1"
@@ -660,7 +658,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           </Card>
 
           {/* Seller Profile Summary */}
-          <Card className="flex items-center gap-3">
+          <Card className="p-6 flex-row items-center gap-3 sm:opacity-100">
             <div className="size-10 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-bold text-foreground">
               {sellerObj?.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -704,17 +702,13 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
         onClose={() => {
           if (!isSubmittingDispute) setIsDisputeOpen(false);
         }}
+        title="File a dispute"
+        description={`Submit an official dispute regarding "${auction.title}". Our administration team will review all details and evidence.`}
+        busy={isSubmittingDispute}
       >
-        <DialogHeader>
-          <DialogTitle>File a Dispute</DialogTitle>
-          <DialogDescription>
-            Submit an official dispute regarding &quot;{auction.title}&quot;. Our administration team will review all details and evidence.
-          </DialogDescription>
-        </DialogHeader>
-
         {disputeMessage && (
           <div
-            className={`p-3 rounded-md text-xs mb-3 ${
+            className={`p-3 rounded-md text-xs mt-4 ${
               disputeMessage.type === 'success'
                 ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
                 : 'bg-red-500/10 border border-red-500/30 text-red-500'
@@ -724,12 +718,13 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
         )}
 
-        <form onSubmit={handleFileDispute} className="space-y-4">
+        <form onSubmit={handleFileDispute} className="mt-4 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-              Dispute Title (Optional)
+            <label htmlFor="dispute-title-input" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              Dispute title (optional)
             </label>
             <Input
+              id="dispute-title-input"
               type="text"
               placeholder="e.g. Item not as described, suspicious bidding"
               value={disputeTitle}
@@ -739,10 +734,11 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-              Description of the Issue <span className="text-red-400">*</span>
+            <label htmlFor="dispute-description-input" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              Description of the issue <span className="text-red-400">*</span>
             </label>
             <Textarea
+              id="dispute-description-input"
               rows={4}
               placeholder="Describe the problem, communication breakdown, or listing inaccuracy in detail..."
               value={disputeDescription}
@@ -752,7 +748,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             />
           </div>
 
-          <DialogFooter>
+          <DialogActions>
             <Button
               type="button"
               variant="ghost"
@@ -770,7 +766,7 @@ function AuctionDetailInner({ params }: { params: Promise<{ id: string }> }) {
             >
               {isSubmittingDispute ? 'Submitting...' : 'Submit dispute'}
             </Button>
-          </DialogFooter>
+          </DialogActions>
         </form>
       </Dialog>
     </div>

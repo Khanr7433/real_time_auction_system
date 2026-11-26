@@ -181,10 +181,10 @@ export default function AuctionsBrowsePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
+    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-8">
       {/* Page Header */}
       <div className="space-y-2">
-        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
           Live auctions
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -201,6 +201,7 @@ export default function AuctionsBrowsePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
             <Input
               type="text"
+              aria-label="Search auctions"
               placeholder="Search by product title or description..."
               value={searchQuery}
               onChange={(e) => {
@@ -218,6 +219,7 @@ export default function AuctionsBrowsePage() {
             variant="outline"
             size="md"
             onClick={() => setShowFilters(!showFilters)}
+            aria-expanded={showFilters}
             className="inline-flex"
           >
             <SlidersHorizontal className="size-4 mr-1.5" />
@@ -229,10 +231,14 @@ export default function AuctionsBrowsePage() {
         {showFilters && (
           <div className="card-chai p-4 flex flex-wrap items-center gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-neutral-500 font-medium">Price range:</span>
+              <label htmlFor="min-price-filter" className="text-neutral-500 font-medium">
+                Price range:
+              </label>
               <Input
+                id="min-price-filter"
                 type="number"
                 min={0}
+                aria-label="Minimum price"
                 placeholder="Min $"
                 value={minPrice}
                 onChange={(e) => {
@@ -243,8 +249,10 @@ export default function AuctionsBrowsePage() {
               />
               <span className="text-neutral-400">to</span>
               <Input
+                id="max-price-filter"
                 type="number"
                 min={0}
+                aria-label="Maximum price"
                 placeholder="Max $"
                 value={maxPrice}
                 onChange={(e) => {
@@ -274,6 +282,7 @@ export default function AuctionsBrowsePage() {
         {/* Category Segmented Control */}
         <div className="overflow-x-auto pb-1 scrollbar-none">
           <Segmented
+            label="Category filter"
             options={CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
             value={selectedCategory}
             onChange={(cat) => {
@@ -345,7 +354,7 @@ export default function AuctionsBrowsePage() {
                     <img
                       src={getMediaUrl(auction.images[0])}
                       alt={auction.title}
-                      className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      className="size-full object-cover sm:opacity-90 group-hover:opacity-100 transition-all duration-300 motion-safe:group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="size-full flex items-center justify-center text-neutral-400 text-xs">
@@ -355,16 +364,19 @@ export default function AuctionsBrowsePage() {
 
                   {/* Top Badges */}
                   <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md capitalize">
+                    <Chip tone="default" className="text-[10px] py-0 px-2 bg-background/85 backdrop-blur-md capitalize">
                       {auction.condition}
-                    </span>
+                    </Chip>
                   </div>
 
                   <div className="absolute top-2 right-2">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-md bg-black/60 text-white border-white/10">
+                    <Chip
+                      tone={hasEnded ? "default" : "success"}
+                      className="text-[10px] py-0 px-2 bg-background/85 backdrop-blur-md"
+                    >
                       {!hasEnded && <LiveDot tone="live" className="size-1.5" />}
                       <span>{hasEnded ? "Closed" : "Live"}</span>
-                    </span>
+                    </Chip>
                   </div>
                 </div>
 

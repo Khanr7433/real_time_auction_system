@@ -1,12 +1,11 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { AnimatedBadge } from '@/components/ui/badge';
+import { AnimatedBadge } from '@/components/animated-badge';
 import {
   Gavel,
   Zap,
   ShieldCheck,
   Clock,
-  ArrowUpRight,
   UserPlus,
   Search,
   Trophy,
@@ -25,7 +24,7 @@ export default function Home() {
         </AnimatedBadge>
 
         {/* Headline */}
-        <h1 className="font-display text-[42px] md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08] text-foreground">
+        <h1 className="text-[42px] md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08] text-foreground">
           Real-time auctions with <span className="highlight">sub-second precision</span>
         </h1>
 
@@ -38,17 +37,12 @@ export default function Home() {
 
         {/* Action Buttons */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/auctions">
-            <Button variant="solid" size="lg" className="w-full sm:w-auto">
-              Explore live auctions
-              <ArrowUpRight className="size-4 ml-1.5" />
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button variant="outline" size="lg" className="w-full sm:w-auto">
-              Create an account
-            </Button>
-          </Link>
+          <Button asChild variant="solid" size="lg" className="w-full sm:w-auto">
+            <Link href="/auctions">Explore live auctions</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+            <Link href="/register">Create an account</Link>
+          </Button>
         </div>
       </section>
 
@@ -170,17 +164,12 @@ export default function Home() {
             Join collectors and traders participating in auctions with transparent real-time updates and guaranteed execution safety.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/auctions">
-              <Button variant="solid" size="lg" className="w-full sm:w-auto">
-                Explore active auctions
-                <ArrowUpRight className="size-4 ml-1.5" />
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Create account
-              </Button>
-            </Link>
+            <Button asChild variant="soft" size="lg" className="w-full sm:w-auto">
+              <Link href="/auctions">Explore active auctions</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+              <Link href="/register">Create account</Link>
+            </Button>
           </div>
         </div>
       </section>
