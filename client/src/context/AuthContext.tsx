@@ -9,6 +9,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'bidnow_token';
 const USER_KEY = 'bidnow_user';
 
+function normalizeUser(raw: unknown): User | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const candidate = (raw as { user?: unknown }).user ?? raw;
+  if (!candidate || typeof candidate !== 'object') {
+    return null;
+  }
+
+  const data = candidate as Record<string, unknown>;
+  const id = typeof data._id === 'string' ? data._id : typeof data.id === 'string' ? data.id : '';
+  const email = typeof data.email === 'string' ? data.email : '';
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    displayName: typeof data.displayName === 'string' ? data.displayName : '',
+    role: data.role === 'admin' ? 'admin' : 'user',
+    avatar: typeof data.avatar === 'string' ? data.avatar : undefined,
+    contactInfo: typeof data.contactInfo === 'string' ? data.contactInfo : undefined,
+    isSuspended: typeof data.isSuspended === 'boolean' ? data.isSuspended : undefined,
+    createdAt: typeof data.createdAt === 'string' ? data.createdAt : undefined,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -25,26 +55,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(storedToken);
           if (storedUser) {
             try {
-              setUser(JSON.parse(storedUser));
+              const cachedUser = normalizeUser(JSON.parse(storedUser));
+              if (cachedUser) {
+                setUser(cachedUser);
+              } else {
+                localStorage.removeItem(USER_KEY);
+              }
             } catch {
-              // Ignore parse error
+              localStorage.removeItem(USER_KEY);
             }
           }
 
           // Verify with backend
           try {
             const profile = await api.get('/users/profile');
-            if (profile) {
-              const fullUser: User = {
-                id: profile._id || profile.id,
-                email: profile.email,
-                displayName: profile.displayName,
-                role: profile.role,
-                avatar: profile.avatar,
-                contactInfo: profile.contactInfo,
-                isSuspended: profile.isSuspended,
-                createdAt: profile.createdAt,
-              };
+            const fullUser = normalizeUser(profile);
+            if (fullUser) {
               setUser(fullUser);
               localStorage.setItem(USER_KEY, JSON.stringify(fullUser));
             }
@@ -69,18 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       const res = await api.post('/auth/login', { email, password });
-      if (res && res.token && res.user) {
-        const loggedInUser: User = {
-          id: res.user._id || res.user.id,
-          email: res.user.email,
-          displayName: res.user.displayName,
-          role: res.user.role,
-          avatar: res.user.avatar,
-          contactInfo: res.user.contactInfo,
-          isSuspended: res.user.isSuspended,
-          createdAt: res.user.createdAt,
-        };
-
+      const loggedInUser = normalizeUser(res?.user);
+      if (res && res.token && loggedInUser) {
         setToken(res.token);
         setUser(loggedInUser);
         localStorage.setItem(TOKEN_KEY, res.token);
@@ -97,18 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (email: string, password: string, displayName: string) => {
     try {
       const res = await api.post('/auth/register', { email, password, displayName });
-      if (res && res.token && res.user) {
-        const newUser: User = {
-          id: res.user._id || res.user.id,
-          email: res.user.email,
-          displayName: res.user.displayName,
-          role: res.user.role,
-          avatar: res.user.avatar,
-          contactInfo: res.user.contactInfo,
-          isSuspended: res.user.isSuspended,
-          createdAt: res.user.createdAt,
-        };
-
+      const newUser = normalizeUser(res?.user);
+      if (res && res.token && newUser) {
         setToken(res.token);
         setUser(newUser);
         localStorage.setItem(TOKEN_KEY, res.token);
