@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ interface UsersApiResponse {
 }
 
 export default function AdminUsersPage() {
-  const { user: currentAdmin } = useAuth();
+  const { user: currentAdmin, isAuthorized } = useAdminAccess();
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState<number>(0);
@@ -89,8 +89,9 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     fetchUsers(page, search, statusFilter, roleFilter);
-  }, [page, statusFilter, roleFilter, fetchUsers]);
+  }, [isAuthorized, page, statusFilter, roleFilter, fetchUsers]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +148,10 @@ export default function AdminUsersPage() {
       setActionUserId(null);
     }
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

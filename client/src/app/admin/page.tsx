@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ interface AnalyticsData {
 }
 
 export default function AdminOverviewPage() {
+  const { isAuthorized } = useAdminAccess();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +78,9 @@ export default function AdminOverviewPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     fetchAnalytics();
-  }, [fetchAnalytics]);
+  }, [isAuthorized, fetchAnalytics]);
 
   const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +116,10 @@ export default function AdminOverviewPage() {
       maximumFractionDigits: 0,
     }).format(val || 0);
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   if (isLoading && !data) {
     return (
