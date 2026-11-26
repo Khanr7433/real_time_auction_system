@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { getMediaUrl } from '@/lib/utils';
 import { Auction } from '@/types/auction';
 import { Button } from '@/components/ui/button';
@@ -48,10 +48,11 @@ export default function SellerDashboardPage() {
     setIsLoading(true);
     setActionError(null);
     try {
-      const res = await api.get(`/auctions?sellerId=${user.id}&status=live&limit=50`);
+      const res = await api.get(`/auctions?sellerId=${user.id}&status=all&limit=50`);
       setMyListings(res.auctions || []);
-    } catch {
+    } catch (err: any) {
       setMyListings([]);
+      setActionError(err instanceof ApiError ? err.message : (err?.message || 'Failed to load your listings'));
     } finally {
       setIsLoading(false);
     }
@@ -64,8 +65,9 @@ export default function SellerDashboardPage() {
     try {
       const res = await api.get('/users/bids');
       setMyBids(res.bids || []);
-    } catch {
+    } catch (err: any) {
       setMyBids([]);
+      setActionError(err instanceof ApiError ? err.message : (err?.message || 'Failed to load your bids'));
     } finally {
       setIsLoading(false);
     }
@@ -78,20 +80,63 @@ export default function SellerDashboardPage() {
     try {
       const res = await api.get('/users/won');
       setWonAuctions(res.auctions || []);
-    } catch {
+    } catch (err: any) {
       setWonAuctions([]);
+      setActionError(err instanceof ApiError ? err.message : (err?.message || 'Failed to load won auctions'));
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      if (activeTab === 'listings') loadMyListings();
-      else if (activeTab === 'bids') loadMyBids();
-      else if (activeTab === 'won') loadWonAuctions();
+    if (!user) return;
+    let isMounted = true;
+
+    async function prefetchDashboard() {
+      setIsLoading(true);
+      setActionError(null);
+      const [listingsRes, bidsRes, wonRes] = await Promise.allSettled([
+        api.get(`/auctions?sellerId=${user!.id}&status=all&limit=50`),
+        api.get('/users/bids'),
+        api.get('/users/won'),
+      ]);
+
+      if (!isMounted) return;
+
+      const errors: string[] = [];
+      if (listingsRes.status === 'fulfilled') {
+        setMyListings(listingsRes.value?.auctions || []);
+      } else {
+        setMyListings([]);
+        errors.push(listingsRes.reason?.message || 'Failed to load listings');
+      }
+
+      if (bidsRes.status === 'fulfilled') {
+        setMyBids(bidsRes.value?.bids || []);
+      } else {
+        setMyBids([]);
+        errors.push(bidsRes.reason?.message || 'Failed to load bids');
+      }
+
+      if (wonRes.status === 'fulfilled') {
+        setWonAuctions(wonRes.value?.auctions || []);
+      } else {
+        setWonAuctions([]);
+        errors.push(wonRes.reason?.message || 'Failed to load won auctions');
+      }
+
+      if (errors.length > 0) {
+        setActionError(errors[0]);
+      }
+      setIsLoading(false);
     }
-  }, [user, activeTab, loadMyListings, loadMyBids, loadWonAuctions]);
+
+    prefetchDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -114,6 +159,10 @@ export default function SellerDashboardPage() {
         <p className="text-sm text-neutral-500">Checking credentials...</p>
       </div>
     );
+  }
+
+  if (!isAuthenticated || !user) {
+    return null;
   }
 
   return (
@@ -187,7 +236,7 @@ export default function SellerDashboardPage() {
           ) : (
             <div className="space-y-3">
               {myListings.map((listing) => {
-                const isLocked = listing.bidCount > 0;
+                const isLocked = listing.bidCount > 0 || listing.status !== 'live';
                 return (
                   <div
                     key={listing._id}
@@ -237,8 +286,11 @@ export default function SellerDashboardPage() {
                       </Link>
 
                       {isLocked ? (
-                        <Chip tone="default" title="Locked after first bid">
-                          <Lock className="size-3" /> Locked
+                        <Chip
+                          tone={listing.status === 'admin-terminated' ? 'danger' : 'default'}
+                          title={listing.bidCount > 0 ? 'Locked after first bid' : `Status: ${listing.status}`}
+                        >
+                          <Lock className="size-3" /> {listing.bidCount > 0 && listing.status === 'live' ? 'Locked' : listing.status}
                         </Chip>
                       ) : (
                         <>

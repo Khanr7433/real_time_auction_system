@@ -65,12 +65,23 @@ export default function CreateAuctionPage() {
       const filesArray = Array.from(e.target.files);
       if (filesArray.length > 5) {
         setError('Maximum 5 images allowed per auction listing');
+        e.target.value = '';
+        setSelectedFiles([]);
+        return;
+      }
+      const invalidType = filesArray.some((f) => !['image/jpeg', 'image/png', 'image/webp'].includes(f.type));
+      if (invalidType) {
+        setError('Only JPEG, PNG, and WebP image files are allowed');
+        e.target.value = '';
+        setSelectedFiles([]);
         return;
       }
       // Check file size (5MB max)
       const oversized = filesArray.some((f) => f.size > 5 * 1024 * 1024);
       if (oversized) {
         setError('Each image file must be smaller than 5 MB');
+        e.target.value = '';
+        setSelectedFiles([]);
         return;
       }
       setSelectedFiles(filesArray);
@@ -91,8 +102,8 @@ export default function CreateAuctionPage() {
       return;
     }
     const numBid = Number(startingBid);
-    if (isNaN(numBid) || numBid <= 0) {
-      setError('Starting bid must be greater than zero');
+    if (!Number.isFinite(numBid) || numBid < 1) {
+      setError('Starting bid must be at least $1');
       return;
     }
     const endDateTime = new Date(endTime);
@@ -127,6 +138,18 @@ export default function CreateAuctionPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="max-w-3xl mx-auto p-6 sm:p-12">
+        <div className="card-chai h-64 animate-pulse bg-neutral-200/50 dark:bg-neutral-800/50" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">

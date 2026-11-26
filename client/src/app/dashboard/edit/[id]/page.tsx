@@ -58,11 +58,15 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+
+    let isMounted = true;
     async function loadAuction() {
       setIsLoading(true);
       setError(null);
       try {
         const data: Auction = await api.get(`/auctions/${auctionId}`);
+        if (!isMounted) return;
         setAuction(data);
         setTitle(data.title || '');
         setCategory(data.category || CATEGORIES[0]);
@@ -76,28 +80,47 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
           setEndTime(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
         }
       } catch (err: any) {
-        setError(err.message || 'Auction listing not found');
+        if (!isMounted) return;
+        setAuction(null);
+        setError(err instanceof ApiError ? err.message : (err?.message || 'Auction listing not found'));
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
 
     loadAuction();
-  }, [auctionId]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auctionId, authLoading, isAuthenticated]);
+
+  const sellerId =
+    typeof auction?.sellerId === 'string'
+      ? auction.sellerId
+      : auction?.sellerId?._id || auction?.sellerId?.id || '';
+  const isOwner = Boolean(user && auction && (sellerId === user.id || user.role === 'admin'));
+  const isLocked = Boolean(auction && ((auction.bidCount ?? 0) > 0 || auction.status !== 'live'));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auction) return;
+    if (!auction || !isOwner) return;
     setError(null);
 
-    if (auction.bidCount > 0) {
-      setError('This auction has active bids and is locked from further edits');
+    if (auction.bidCount > 0 || auction.status !== 'live') {
+      setError('This auction can no longer be edited');
       return;
     }
 
     const numBid = Number(startingBid);
-    if (isNaN(numBid) || numBid <= 0) {
-      setError('Starting bid must be greater than zero');
+    if (!Number.isFinite(numBid) || numBid < 1) {
+      setError('Starting bid must be at least $1');
+      return;
+    }
+
+    const endDateTime = new Date(endTime);
+    if (isNaN(endDateTime.getTime()) || endDateTime.getTime() <= Date.now()) {
+      setError('End date must be set to a future date and time');
       return;
     }
 
@@ -109,7 +132,7 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
         description: description.trim(),
         condition,
         startingBid: numBid,
-        endTime: new Date(endTime).toISOString(),
+        endTime: endDateTime.toISOString(),
       });
 
       router.push('/dashboard');
@@ -128,7 +151,66 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
-  const isLocked = (auction?.bidCount ?? 0) > 0;
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  if (!auction) {
+    return (
+      <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-3.5" /> Back to dashboard
+        </Link>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Listing not found</CardTitle>
+            <CardDescription>
+              We could not load this auction listing. It may have been removed or the ID is invalid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && <Alert tone="danger">{error}</Alert>}
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm">
+                Return to dashboard
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isOwner) {
+    return (
+      <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-3.5" /> Back to dashboard
+        </Link>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Access denied</CardTitle>
+            <CardDescription>
+              Only the seller who created this auction can edit its details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm">
+                Return to dashboard
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
@@ -151,7 +233,9 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
           <CardDescription>
             {isLocked
-              ? 'This auction has received bids and details cannot be modified.'
+              ? auction.status !== 'live'
+                ? `This auction is ${auction.status} and details cannot be modified.`
+                : 'This auction has received bids and details cannot be modified.'
               : 'Update auction details prior to receiving any bids.'}
           </CardDescription>
         </CardHeader>
@@ -169,8 +253,9 @@ function EditAuctionInner({ params }: { params: Promise<{ id: string }> }) {
                 Listing details locked
               </h3>
               <p className="text-xs text-neutral-500 max-w-md mx-auto">
-                Once a valid bid has been placed, auction properties (title, starting price, and duration)
-                cannot be altered to protect the integrity of the active bidding room.
+                {auction.status !== 'live'
+                  ? `Auctions with status "${auction.status}" are closed and cannot be modified.`
+                  : 'Once a valid bid has been placed, auction properties (title, starting price, and duration) cannot be altered to protect the integrity of the active bidding room.'}
               </p>
               <Link href="/dashboard">
                 <Button variant="outline" size="sm" className="mt-2">
