@@ -33,8 +33,8 @@ export default function RegisterPage() {
       setError('Please provide a valid email address');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
     if (password !== confirmPassword) {
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 </label>
                 <Input
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
