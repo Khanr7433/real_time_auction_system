@@ -14,6 +14,7 @@ const getProfile = async (req, res, next) => {
         contactInfo: user.contactInfo,
         avatar: user.avatar,
         role: user.role,
+        isSuspended: user.isSuspended,
         createdAt: user.createdAt,
       },
     });
