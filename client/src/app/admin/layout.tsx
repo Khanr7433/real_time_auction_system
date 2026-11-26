@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import {
   ShieldAlert,
   BarChart3,
@@ -16,39 +16,45 @@ import {
 import { Button } from '@/components/ui/button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { isLoading, isAuthorized } = useAdminAccess();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
+    if (!isLoading && !isAuthorized) {
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthorized, router]);
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-4">
-        <div className="h-8 w-48 bg-neutral-200/40 dark:bg-neutral-800/40 rounded animate-pulse" />
-        <div className="card-chai h-96 bg-neutral-200/20 dark:bg-neutral-800/20 animate-pulse" />
-      </div>
+      <>
+        <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-4">
+          <div className="h-8 w-48 bg-neutral-200/40 dark:bg-neutral-800/40 rounded animate-pulse" />
+          <div className="card-chai h-96 bg-neutral-200/20 dark:bg-neutral-800/20 animate-pulse" />
+        </div>
+        {children}
+      </>
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
+  if (!isAuthorized) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 text-center space-y-4 card-chai">
-        <ShieldAlert className="size-12 mx-auto text-red-500" />
-        <h2 className="font-montserrat text-xl font-bold text-foreground">Access Denied</h2>
-        <p className="text-xs text-neutral-500">
-          This area is restricted to system administrators only.
-        </p>
-        <Link href="/" className="inline-block pt-2">
-          <Button variant="soft" size="sm" iconRight={false}>
-            <ArrowLeft className="size-4 mr-1" /> Return Home
-          </Button>
-        </Link>
-      </div>
+      <>
+        <div className="max-w-md mx-auto my-16 p-8 text-center space-y-4 card-chai">
+          <ShieldAlert className="size-12 mx-auto text-red-500" />
+          <h2 className="font-montserrat text-xl font-bold text-foreground">Access Denied</h2>
+          <p className="text-xs text-neutral-500">
+            This area is restricted to system administrators only.
+          </p>
+          <Link href="/" className="inline-block pt-2">
+            <Button variant="soft" size="sm" iconRight={false}>
+              <ArrowLeft className="size-4 mr-1" /> Return Home
+            </Button>
+          </Link>
+        </div>
+        {children}
+      </>
     );
   }
 
