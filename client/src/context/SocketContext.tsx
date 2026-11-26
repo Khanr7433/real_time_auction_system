@@ -15,14 +15,18 @@ const SocketContext = createContext<SocketContextType>({
 });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     const socketUrl =
-      process.env.NEXT_PUBLIC_SOCKET_URL ||
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') ||
+      process.env.NEXT_PUBLIC_SOCKET_URL?.replace(/\/$/, '') ||
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
       'http://localhost:5000';
 
     const authPayload = token && isAuthenticated ? { token } : {};
@@ -32,7 +36,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
     });
 
@@ -49,14 +53,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     newSocket.on('connect_error', (error) => {
       console.warn('Socket connection error:', error.message);
       setIsConnected(false);
+      if (error.message?.toLowerCase().includes('authentication')) {
+        newSocket.io.opts.reconnection = false;
+        newSocket.disconnect();
+      }
     });
 
     setSocket(newSocket);
 
     return () => {
+      newSocket.removeAllListeners();
       newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, authLoading]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

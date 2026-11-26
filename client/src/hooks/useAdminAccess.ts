@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
  */
 export function useAdminAccess() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const isAuthorized = !isLoading && isAuthenticated && user?.role === 'admin';
+  const isAuthorized = !isLoading && isAuthenticated && user?.role === 'admin' && !user?.isSuspended;
 
   return {
     user,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 import { api, ApiError } from '@/lib/api';
 
@@ -46,19 +46,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize session from localStorage and verify with backend
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     async function initAuth() {
       try {
         const storedToken = localStorage.getItem(TOKEN_KEY);
         const storedUser = localStorage.getItem(USER_KEY);
 
         if (storedToken) {
-          setToken(storedToken);
+          let cachedUser: User | null = null;
           if (storedUser) {
             try {
-              const cachedUser = normalizeUser(JSON.parse(storedUser));
-              if (cachedUser) {
-                setUser(cachedUser);
-              } else {
+              cachedUser = normalizeUser(JSON.parse(storedUser));
+              if (!cachedUser) {
                 localStorage.removeItem(USER_KEY);
               }
             } catch {
@@ -66,31 +67,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          // Verify with backend
+          // Verify with backend before flipping isAuthenticated
           try {
-            const profile = await api.get('/users/profile');
+            const profile = await api.get('/users/profile', { signal: controller.signal });
+            if (!isMounted || controller.signal.aborted) return;
+
             const fullUser = normalizeUser(profile);
             if (fullUser) {
+              setToken(storedToken);
               setUser(fullUser);
               localStorage.setItem(USER_KEY, JSON.stringify(fullUser));
-            }
-          } catch (err) {
-            // If token expired or rejected, clear local session
-            if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+            } else {
               localStorage.removeItem(TOKEN_KEY);
               localStorage.removeItem(USER_KEY);
               setToken(null);
               setUser(null);
             }
+          } catch (err) {
+            if (!isMounted || controller.signal.aborted) return;
+            // If token expired, rejected, or user suspended, clear local session
+            if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+              localStorage.removeItem(TOKEN_KEY);
+              localStorage.removeItem(USER_KEY);
+              setToken(null);
+              setUser(null);
+            } else if (cachedUser) {
+              // Transient network/server error: fall back to cached user after verification attempt
+              setToken(storedToken);
+              setUser(cachedUser);
+            }
           }
         }
       } finally {
-        setIsLoading(false);
+        if (isMounted && !controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }
 
     initAuth();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
+
+  // Persist user profile changes to localStorage outside state updaters
+  useEffect(() => {
+    if (isLoading) return;
+    if (user && token) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_KEY);
+    }
+  }, [user, token, isLoading]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -142,24 +173,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateUser = useCallback((updatedData: Partial<User>) => {
-    setUser((prev) => {
-      if (!prev) return null;
-      const updated = { ...prev, ...updatedData };
-      localStorage.setItem(USER_KEY, JSON.stringify(updated));
-      return updated;
-    });
+    setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    token,
-    isAuthenticated: !!user && !!token,
-    isLoading,
-    login,
-    register,
-    logout,
-    updateUser,
-  };
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      token,
+      isAuthenticated: !!user && !!token,
+      isLoading,
+      login,
+      register,
+      logout,
+      updateUser,
+    }),
+    [user, token, isLoading, login, register, logout, updateUser]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
