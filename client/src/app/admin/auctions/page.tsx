@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -63,6 +64,7 @@ interface AdminAuctionsResponse {
 }
 
 export default function AdminAuctionsPage() {
+  const { isAuthorized } = useAdminAccess();
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -119,8 +121,9 @@ export default function AdminAuctionsPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     fetchAuctions(page, search, statusFilter, flaggedOnly);
-  }, [page, statusFilter, flaggedOnly, fetchAuctions]);
+  }, [isAuthorized, page, statusFilter, flaggedOnly, fetchAuctions]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,6 +263,10 @@ export default function AdminAuctionsPage() {
         );
     }
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,6 +65,7 @@ interface DisputesApiResponse {
 }
 
 export default function AdminDisputesPage() {
+  const { isAuthorized } = useAdminAccess();
   const [disputes, setDisputes] = useState<DisputeItem[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -106,8 +108,9 @@ export default function AdminDisputesPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     fetchDisputes(page, statusFilter);
-  }, [page, statusFilter, fetchDisputes]);
+  }, [isAuthorized, page, statusFilter, fetchDisputes]);
 
   const handleResolveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +188,10 @@ export default function AdminDisputesPage() {
         return null;
     }
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
