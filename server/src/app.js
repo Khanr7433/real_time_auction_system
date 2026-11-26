@@ -19,6 +19,7 @@ import auctionTimerService from './services/auctionTimer.service.js';
 import notificationService from './services/notification.service.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // Initialize Socket.io
@@ -74,12 +75,23 @@ app.get('/api/health', (req, res) => {
 });
 
 // Centralized error handler
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error('Unhandled error:', err);
-  const status = err.status || 500;
-  res.status(status).json({
-    error: err.message || 'Internal Server Error',
-  });
+
+  if (err?.name === 'CastError') {
+    return res.status(400).json({ error: 'Invalid identifier format' });
+  }
+  if (err?.name === 'ValidationError') {
+    const firstMessage = Object.values(err.errors || {})[0]?.message;
+    return res.status(400).json({ error: firstMessage || 'Validation failed' });
+  }
+  if (err?.code === 11000) {
+    return res.status(409).json({ error: 'Duplicate resource conflict' });
+  }
+
+  const status = err?.status || err?.statusCode || 500;
+  const message = status >= 500 ? 'Internal Server Error' : (err?.message || 'Request failed');
+  return res.status(status).json({ error: message });
 });
 
 // Start function for server & DB
