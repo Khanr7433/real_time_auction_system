@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   status: number;
@@ -12,26 +12,42 @@ export class ApiError extends Error {
   }
 }
 
+function isSameApiOrigin(url: string, endpoint: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const apiOrigin = new URL(API_BASE_URL, window.location.origin).origin;
+    const targetOrigin = new URL(url, window.location.origin).origin;
+    return targetOrigin === apiOrigin;
+  } catch {
+    return !/^https?:\/\//i.test(endpoint) && !endpoint.startsWith('//');
+  }
+}
+
+function serializeBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) return undefined;
+  if (body instanceof FormData) return body;
+  return JSON.stringify(body);
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const isAbsolute = /^https?:\/\//i.test(endpoint) || endpoint.startsWith('//');
+  const url = isAbsolute ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string>),
-  };
+  const headers = new Headers(options.headers);
 
   // Only default to application/json if body is not FormData
-  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  // Attach token from localStorage in browser context if present
-  if (typeof window !== 'undefined') {
+  // Attach token from localStorage in browser context only for same API origin
+  if (typeof window !== 'undefined' && isSameApiOrigin(url, endpoint)) {
     const token = localStorage.getItem('bidnow_token');
-    if (token && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
   }
 
@@ -40,14 +56,28 @@ export async function apiRequest<T = any>(
     headers,
   });
 
-  const contentType = response.headers.get('content-type');
-  const isJson = contentType && contentType.includes('application/json');
-  const data = isJson ? await response.json() : await response.text();
+  let data: unknown = undefined;
+  if (response.status !== 204 && response.status !== 205) {
+    const text = await response.text();
+    if (text) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+      } else {
+        data = text;
+      }
+    }
+  }
 
   if (!response.ok) {
+    const jsonObj = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
     const errorMessage =
-      (isJson && data?.error) ||
-      (isJson && data?.message) ||
+      (typeof jsonObj?.error === 'string' && jsonObj.error) ||
+      (typeof jsonObj?.message === 'string' && jsonObj.message) ||
       `Request failed with status ${response.status}`;
     throw new ApiError(errorMessage, response.status, data);
   }
@@ -62,19 +92,19 @@ export const api = {
     apiRequest<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+      body: serializeBody(body),
     }),
   put: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+      body: serializeBody(body),
     }),
   patch: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+      body: serializeBody(body),
     }),
   delete: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),

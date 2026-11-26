@@ -17,15 +17,18 @@ export interface Auction {
   condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
   startingBid: number;
   currentBid: number;
-  highestBidderId?: { _id: string; displayName: string } | null;
+  highestBidderId?: { _id: string; id?: string; displayName: string } | string | null;
   bidCount: number;
   images: string[];
   startTime: string;
   endTime: string;
   status: 'pending' | 'live' | 'completed' | 'unsold' | 'admin-terminated';
   version: number;
+  isFlagged?: boolean;
+  flagReason?: string;
   timeRemainingSeconds?: number;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuctionsResponse {

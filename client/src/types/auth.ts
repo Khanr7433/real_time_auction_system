@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  _id?: string;
   email: string;
   displayName: string;
   role: 'user' | 'admin';
@@ -7,6 +8,7 @@ export interface User {
   contactInfo?: string;
   isSuspended?: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {

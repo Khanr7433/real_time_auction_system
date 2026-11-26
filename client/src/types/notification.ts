@@ -4,17 +4,18 @@ export type NotificationType =
   | 'auction_sold'
   | 'auction_unsold'
   | 'ending_soon'
+  | 'auction_ending_soon'
   | 'system_announcement'
   | 'system';
 
 export interface NotificationItem {
-  _id: string;
-  userId: string;
+  _id?: string;
+  userId?: string;
   type: NotificationType;
-  title: string;
+  title?: string;
   message: string;
-  data: Record<string, any>;
-  isRead: boolean;
+  data?: Record<string, any>;
+  isRead?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
