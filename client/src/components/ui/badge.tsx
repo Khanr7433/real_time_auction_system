@@ -1,59 +1,35 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import { cva, type VariantProps } from 'class-variance-authority'
+import * as React from 'react'
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'outline' | 'new' | 'hot' | 'rated';
+import { cn } from '@/lib/utils'
+
+/**
+ * The small labels that sit on a card's image, with the exact colours from
+ * chaicode.com's udemy cards. They belong on top of media only; everywhere
+ * else, status is text colour (see Chip and Level).
+ *
+ * - `overlay`: a frosted black pill, for the rating ("4.7 ★").
+ * - `new`: teal, for "New" and "Bestseller".
+ * - `hot`: rose, for "Hot & New".
+ * - `rated`: wheat, for "Highest Rated".
+ */
+const badgeVariants = cva(
+  'inline-flex w-fit shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-4 font-bold tracking-wide whitespace-nowrap [&>svg]:size-3',
+  {
+    variants: {
+      variant: {
+        overlay: 'bg-black/70 text-xs font-medium tracking-normal text-white backdrop-blur-md',
+        new: 'bg-[#c8ebe8] text-[#1a5c5c]',
+        hot: 'bg-[#f8d4d4] text-[#9b1c1c]',
+        rated: 'bg-[oklch(0.9232_0.0692_78.84)] text-[oklch(46.68%_0.1161_51.53)]',
+      },
+    },
+    defaultVariants: { variant: 'overlay' },
+  },
+)
+
+function Badge({ className, variant, ...props }: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants>) {
+  return <span data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
-export function Badge({
-  className,
-  variant = 'outline',
-  children,
-  ...props
-}: BadgeProps) {
-  const variantClasses = {
-    outline: 'border-border text-foreground bg-transparent',
-    new: 'border-emerald-500/40 text-emerald-400 bg-transparent',
-    hot: 'border-amber-500/40 text-amber-400 bg-transparent',
-    rated: 'border-purple-500/40 text-purple-400 bg-transparent',
-  }[variant];
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider border',
-        variantClasses,
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </span>
-  );
-}
-
-// ChaiUI signature AnimatedBadge with border glint
-export function AnimatedBadge({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>) {
-  return (
-    <span
-      className={cn(
-        'relative inline-flex w-fit overflow-hidden rounded-full p-px',
-        className
-      )}
-      {...props}
-    >
-      <span
-        aria-hidden
-        className="absolute top-1/2 left-1/2 h-5 w-[300px] rounded-full bg-gradient-to-r from-transparent via-transparent to-orange-500 motion-safe:animate-[chai-spin_4s_linear_infinite]"
-        style={{ transform: 'translate(-50%,-50%)' }}
-      />
-      <span className="relative z-10 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-border px-3 py-1 text-xs font-medium text-foreground flex items-center gap-2">
-        {children}
-      </span>
-    </span>
-  );
-}
+export { Badge, badgeVariants }

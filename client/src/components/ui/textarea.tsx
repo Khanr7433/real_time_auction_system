@@ -1,21 +1,11 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from 'react'
 
-export interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+import { cn } from '@/lib/utils'
+import { inputClass } from '@/components/ui/input'
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <textarea
-        ref={ref}
-        className={cn(
-          'flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y',
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-Textarea.displayName = 'Textarea';
+/** The input's look for longer text. It grows with its content where the browser supports it. */
+function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
+  return <textarea data-slot="textarea" className={cn(inputClass, 'h-auto min-h-24 resize-y py-2 leading-relaxed [field-sizing:content]', className)} {...props} />
+}
+
+export { Textarea }

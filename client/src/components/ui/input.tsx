@@ -1,25 +1,16 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from 'react'
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  error?: string;
+import { cn } from '@/lib/utils'
+
+/**
+ * The toolbar field from chaicode.com's udemy page and Chai Prep's
+ * `.cc-input`: h-9, rounded-md, a grey hairline, near-black glass on dark.
+ */
+const inputClass =
+  'h-9 w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 text-sm text-foreground transition-colors duration-150 outline-none placeholder:text-muted-foreground focus-visible:border-gray-300 focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-red-500/60 dark:border-gray-800 dark:bg-black/50 dark:focus-visible:border-gray-700'
+
+function Input({ className, type = 'text', ...props }: React.ComponentProps<'input'>) {
+  return <input data-slot="input" type={type} className={cn(inputClass, className)} {...props} />
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', error, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        ref={ref}
-        className={cn(
-          'flex h-10 w-full rounded-lg border border-neutral-300 bg-white/70 px-3 py-2 text-sm text-neutral-900 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-black/30 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus-visible:ring-neutral-600',
-          error && 'border-red-500 dark:border-red-500 focus-visible:ring-red-500',
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-Input.displayName = 'Input';
-
+export { Input, inputClass }

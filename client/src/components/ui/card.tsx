@@ -1,56 +1,67 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from 'react'
 
-export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+import { cn } from '@/lib/utils'
+
+/**
+ * The listing card from chaicode.com (routes/udemy UdemyCourseCard): a warm
+ * hairline, a faint fill with a touch of blur, and no shadow. It sits a
+ * little dimmed on wide screens and comes to full on hover; the media zooms
+ * 3% over 300ms.
+ */
+function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
+      data-slot="card"
       className={cn(
-        'card-chai p-6 text-foreground',
-        className
+        'card-chai group relative flex flex-col overflow-hidden text-card-foreground sm:opacity-90 sm:hover:opacity-100 sm:has-focus-visible:opacity-100',
+        className,
       )}
       {...props}
-    >
-      {children}
-    </div>
-  );
+    />
+  )
 }
 
-export function CardHeader({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+/** An aspect-video frame for the card's image. Pass the <img> as the child. */
+function CardMedia({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div className={cn('flex flex-col space-y-1.5 pb-4', className)} {...props}>
-      {children}
-    </div>
-  );
+    <div
+      data-slot="card-media"
+      className={cn(
+        'relative aspect-video w-full shrink-0 overflow-hidden [&>img]:size-full [&>img]:object-cover [&>img]:transition-transform [&>img]:duration-300 motion-safe:group-hover:[&>img]:scale-[1.03]',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
-export function CardTitle({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+function CardBody({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="card-body" className={cn('flex min-w-0 flex-1 flex-col gap-1.5 p-4', className)} {...props} />
+}
+
+function CardTitle({ className, ...props }: React.ComponentProps<'h3'>) {
   return (
     <h3
-      className={cn('font-montserrat text-xl font-semibold leading-none tracking-tight text-foreground', className)}
+      data-slot="card-title"
+      className={cn('font-display text-base leading-snug font-semibold text-gray-900 dark:text-gray-50', className)}
       {...props}
-    >
-      {children}
-    </h3>
-  );
+    />
+  )
 }
 
-export function CardDescription({ className, children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+function CardText({ className, ...props }: React.ComponentProps<'p'>) {
   return (
-    <p className={cn('text-sm text-neutral-500 dark:text-neutral-400', className)} {...props}>
-      {children}
-    </p>
-  );
+    <p
+      data-slot="card-text"
+      className={cn('line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400', className)}
+      {...props}
+    />
+  )
 }
 
-export function CardContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('pt-2', className)} {...props}>{children}</div>;
+/** Pinned to the bottom: a note or price on the left, the action on the right. */
+function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="card-footer" className={cn('mt-auto flex items-end justify-between gap-3 pt-3', className)} {...props} />
 }
 
-export function CardFooter({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn('flex items-center pt-4', className)} {...props}>
-      {children}
-    </div>
-  );
-}
-
+export { Card, CardBody, CardFooter, CardMedia, CardText, CardTitle }

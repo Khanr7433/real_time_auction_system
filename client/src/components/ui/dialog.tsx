@@ -1,101 +1,130 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import * as React from 'react'
+import { createPortal } from 'react-dom'
 
-export interface DialogProps {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  className?: string;
-}
+import { cn } from '@/lib/utils'
 
-export function Dialog({ open, onClose, children, className }: DialogProps) {
+/**
+ * A modal panel, portalled to <body> so no header blur or card transform can
+ * clip it. Escape and the backdrop close it (unless `busy`), Tab stays
+ * inside, the page behind stops scrolling, and focus goes back where it was
+ * on close. `initialFocus` picks what gets focus first: point it at the safe
+ * choice.
+ */
+function Dialog({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  role = 'dialog',
+  busy = false,
+  initialFocus,
+  className,
+}: {
+  open: boolean
+  onClose: () => void
+  title: React.ReactNode
+  description?: React.ReactNode
+  children?: React.ReactNode
+  role?: 'dialog' | 'alertdialog'
+  busy?: boolean
+  initialFocus?: React.RefObject<HTMLElement | null>
+  className?: string
+}) {
+  const titleId = React.useId()
+  const bodyId = React.useId()
+  const panel = React.useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = React.useState(false)
+  const busyRef = React.useRef(busy)
+  const closeRef = React.useRef(onClose)
+  busyRef.current = busy
+  closeRef.current = onClose
+
+  React.useEffect(() => setMounted(true), [])
+
   React.useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+    if (!open) return
+    const before = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    // Wait a frame so the portal is in the DOM before focusing into it.
+    const t = window.setTimeout(() => {
+      const target = initialFocus?.current ?? panel.current?.querySelector<HTMLElement>('button:not([disabled]), input, a[href]') ?? panel.current
+      target?.focus()
+    }, 30)
 
-  if (!open) return null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busyRef.current) {
+        e.preventDefault()
+        closeRef.current()
+      }
+      if (e.key === 'Tab' && panel.current) {
+        const items = panel.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select, textarea, a[href], [tabindex]:not([tabindex="-1"])',
+        )
+        if (!items.length) return
+        const first = items[0]
+        const last = items[items.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      window.clearTimeout(t)
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
+      before?.focus?.()
+    }
+  }, [open, initialFocus])
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+  if (!open || !mounted) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] grid place-items-center p-4" role="presentation">
       <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-[6px] motion-safe:animate-chai-fade"
+        onClick={() => !busy && onClose()}
+        aria-hidden="true"
+      />
+      <div
+        ref={panel}
+        role={role}
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? bodyId : undefined}
+        tabIndex={-1}
+        data-slot="dialog"
         className={cn(
-          'card-chai relative w-full max-w-lg p-6 bg-card text-foreground border border-card-edge transition-all',
-          className
+          'relative w-full max-w-md rounded-2xl border border-card-edge-hover bg-card p-6 text-card-foreground outline-none motion-safe:animate-chai-pop',
+          className,
         )}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close dialog"
-          className="absolute right-4 top-4 rounded-sm text-neutral-400 hover:text-foreground transition-colors"
-        >
-          <X className="size-4" />
-        </button>
+        <h2 id={titleId} className="font-display text-lg leading-snug font-semibold">
+          {title}
+        </h2>
+        {description && (
+          <div id={bodyId} className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </div>
+        )}
         {children}
       </div>
-    </div>
-  );
+    </div>,
+    document.body,
+  )
 }
 
-export function DialogHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('flex flex-col space-y-1.5 text-left pb-4', className)}
-      {...props}
-    />
-  );
+/** The button row: stacked on phones (main action on top), right-aligned from sm. */
+function DialogActions({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div className={cn('mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props} />
 }
 
-export function DialogTitle({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
-  return (
-    <h3
-      className={cn('font-montserrat text-base font-semibold leading-none tracking-tight text-foreground', className)}
-      {...props}
-    />
-  );
-}
-
-export function DialogDescription({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) {
-  return (
-    <p
-      className={cn('text-xs text-neutral-400 leading-relaxed pt-1', className)}
-      {...props}
-    />
-  );
-}
-
-export function DialogFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4 border-t border-border/60', className)}
-      {...props}
-    />
-  );
-}
+export { Dialog, DialogActions }

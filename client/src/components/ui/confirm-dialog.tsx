@@ -1,111 +1,112 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from './button';
-import { Alert } from './alert';
-import { AlertTriangle, AlertCircle } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react'
+import * as React from 'react'
 
-export interface ConfirmDialogProps {
-  open: boolean;
-  title: string;
-  description: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  tone?: 'danger' | 'warning' | 'default';
-  busy?: boolean;
-  error?: string | null;
-  onConfirm: () => void | Promise<void>;
-  onCancel: () => void;
-}
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogActions } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
-export function ConfirmDialog({
+/**
+ * A confirmation for actions that cannot be undone (from Chai Prep's
+ * ConfirmDialog). Say exactly what will happen in `children`. Focus starts on
+ * the safe choice. With `typeToConfirm`, the confirm button stays disabled
+ * until that word is typed: use it when other people are affected too.
+ */
+function ConfirmDialog({
   open,
   title,
-  description,
-  confirmLabel = 'Confirm',
+  children,
+  confirmLabel,
+  busyLabel = 'Working',
   cancelLabel = 'Cancel',
   tone = 'danger',
+  typeToConfirm,
   busy = false,
-  error = null,
+  error,
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
-  React.useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onCancel();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, busy, onCancel]);
+}: {
+  open: boolean
+  title: React.ReactNode
+  children?: React.ReactNode
+  confirmLabel: string
+  busyLabel?: string
+  cancelLabel?: string
+  tone?: 'danger' | 'neutral'
+  /** A word the person must type before the confirm button works. */
+  typeToConfirm?: string
+  busy?: boolean
+  error?: string | null
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const cancelBtn = React.useRef<HTMLButtonElement>(null)
+  const input = React.useRef<HTMLInputElement>(null)
+  const [typed, setTyped] = React.useState('')
+  const inputId = React.useId()
 
-  if (!open) return null;
+  React.useEffect(() => {
+    if (open) setTyped('')
+  }, [open])
+
+  const ready = !typeToConfirm || typed.trim().toLowerCase() === typeToConfirm.toLowerCase()
 
   return (
-    <div
+    <Dialog
+      open={open}
+      onClose={onCancel}
       role="alertdialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !busy) onCancel();
-      }}
+      busy={busy}
+      initialFocus={typeToConfirm ? input : cancelBtn}
+      title={
+        <span className="flex items-start gap-4">
+          {tone === 'danger' && (
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-red-500/12 text-red-600 dark:text-red-400" aria-hidden="true">
+              <TriangleAlert className="size-5" />
+            </span>
+          )}
+          <span className="min-w-0 flex-1 pt-2">{title}</span>
+        </span>
+      }
+      description={children ? <div className={tone === 'danger' ? 'sm:pl-14' : undefined}>{children}</div> : undefined}
     >
-      <div
-        className={cn(
-          'card-chai relative w-full max-w-md p-6 bg-card text-foreground border border-card-edge space-y-4'
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              'p-2 rounded-xl shrink-0 border',
-              tone === 'danger'
-                ? 'border-red-500/40 text-red-500 bg-red-500/10'
-                : 'border-neutral-700 text-neutral-300 bg-neutral-800'
-            )}
-          >
-            {tone === 'danger' ? (
-              <AlertTriangle className="size-5" />
-            ) : (
-              <AlertCircle className="size-5" />
-            )}
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-montserrat text-sm font-semibold tracking-tight text-foreground">
-              {title}
-            </h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              {description}
-            </p>
-          </div>
+      {typeToConfirm && (
+        <div className="mt-5">
+          <label htmlFor={inputId} className="text-sm text-muted-foreground">
+            Type <span className="font-semibold text-foreground">{typeToConfirm}</span> to confirm
+          </label>
+          <Input
+            id={inputId}
+            ref={input}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && ready && !busy) onConfirm()
+            }}
+            autoComplete="off"
+            spellCheck={false}
+            className="mt-1.5"
+          />
         </div>
+      )}
 
-        {error && <Alert tone="danger">{error}</Alert>}
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={onCancel}
-            className="text-xs"
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            type="button"
-            variant={tone === 'danger' ? 'danger' : 'soft'}
-            size="sm"
-            disabled={busy}
-            onClick={onConfirm}
-            className="text-xs"
-          >
-            {busy ? 'Processing...' : confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+      <DialogActions>
+        <Button ref={cancelBtn} variant="ghost" onClick={onCancel} disabled={busy}>
+          {cancelLabel}
+        </Button>
+        <Button variant={tone === 'danger' ? 'danger' : 'soft'} onClick={onConfirm} disabled={!ready || busy} aria-busy={busy || undefined}>
+          {busy ? busyLabel : confirmLabel}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
 }
+
+export { ConfirmDialog }

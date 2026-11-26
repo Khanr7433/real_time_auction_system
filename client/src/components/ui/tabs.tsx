@@ -1,121 +1,61 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as TabsPrimitive from '@radix-ui/react-tabs'
+import * as React from 'react'
 
-interface TabsContextValue {
-  value: string;
-  onValueChange: (val: string) => void;
-  variant: 'line' | 'segmented';
+import { cn } from '@/lib/utils'
+
+/**
+ * Tabs on Radix: arrow keys move between them, Home and End jump to the ends.
+ *
+ * - `variant="line"` (default): grey text, the active tab in white with a
+ *   1px white rule under it. For sections of a page.
+ * - `variant="segmented"`: the toolbar box with the warm brown active
+ *   segment, the same as Segmented. For switching views.
+ */
+const TabsVariant = React.createContext<'line' | 'segmented'>('line')
+
+function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  return <TabsPrimitive.Root data-slot="tabs" className={cn('flex flex-col gap-4', className)} {...props} />
 }
 
-const TabsContext = React.createContext<TabsContextValue | null>(null);
-
-export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: string;
-  onValueChange: (value: string) => void;
-  variant?: 'line' | 'segmented';
-}
-
-export function Tabs({
-  value,
-  onValueChange,
-  variant = 'line',
-  className,
-  children,
-  ...props
-}: TabsProps) {
+function TabsList({ className, variant = 'line', ...props }: React.ComponentProps<typeof TabsPrimitive.List> & { variant?: 'line' | 'segmented' }) {
   return (
-    <TabsContext.Provider value={{ value, onValueChange, variant }}>
-      <div className={cn('space-y-4', className)} {...props}>
-        {children}
-      </div>
-    </TabsContext.Provider>
-  );
+    <TabsVariant value={variant}>
+      <TabsPrimitive.List
+        data-slot="tabs-list"
+        className={cn(
+          'flex max-w-full overflow-x-auto [scrollbar-width:none]',
+          variant === 'line'
+            ? 'gap-5 border-b border-border'
+            : 'w-fit rounded-md border border-gray-200 bg-white dark:border-gray-800 dark:bg-black/50',
+          className,
+        )}
+        {...props}
+      />
+    </TabsVariant>
+  )
 }
 
-export function TabsList({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const ctx = React.useContext(TabsContext);
-  const isSegmented = ctx?.variant === 'segmented';
-
+function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const variant = React.use(TabsVariant)
   return (
-    <div
-      role="tablist"
+    <TabsPrimitive.Trigger
+      data-slot="tabs-trigger"
       className={cn(
-        isSegmented
-          ? 'inline-flex items-center gap-1 p-1 rounded-lg border border-border bg-neutral-900/50'
-          : 'flex items-center gap-2 overflow-x-auto pb-2 border-b border-border',
-        className
+        "inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm whitespace-nowrap transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg:not([class*='size-'])]:size-4",
+        variant === 'line'
+          ? '-mb-px border-b border-transparent pt-1 pb-2.5 font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground'
+          : 'h-9 px-3.5 text-[13px] text-gray-600 hover:bg-orange-50 hover:text-orange-900 focus-visible:ring-inset data-[state=active]:bg-orange-100 data-[state=active]:text-orange-900 dark:text-gray-400 dark:hover:bg-orange-900/20 dark:hover:text-orange-100 dark:data-[state=active]:bg-orange-900/40 dark:data-[state=active]:text-orange-100',
+        className,
       )}
       {...props}
-    >
-      {children}
-    </div>
-  );
+    />
+  )
 }
 
-export interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  value: string;
+function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return <TabsPrimitive.Content data-slot="tabs-content" className={cn('outline-none focus-visible:ring-2 focus-visible:ring-ring/50', className)} {...props} />
 }
 
-export function TabsTrigger({
-  value,
-  className,
-  children,
-  ...props
-}: TabsTriggerProps) {
-  const ctx = React.useContext(TabsContext);
-  const isActive = ctx?.value === value;
-  const isSegmented = ctx?.variant === 'segmented';
-
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={isActive}
-      onClick={() => ctx?.onValueChange(value)}
-      className={cn(
-        'text-xs font-medium transition-all cursor-pointer whitespace-nowrap',
-        isSegmented
-          ? isActive
-            ? 'bg-neutral-800 text-foreground border border-neutral-700/80 px-3 py-1.5 rounded-md'
-            : 'text-neutral-500 hover:text-foreground px-3 py-1.5'
-          : isActive
-          ? 'text-foreground font-semibold border-b-2 border-foreground pb-2 -mb-2'
-          : 'text-neutral-500 hover:text-foreground pb-2 -mb-2',
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
-
-export interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: string;
-}
-
-export function TabsContent({
-  value,
-  className,
-  children,
-  ...props
-}: TabsContentProps) {
-  const ctx = React.useContext(TabsContext);
-  if (ctx?.value !== value) return null;
-
-  return (
-    <div
-      role="tabpanel"
-      className={cn('focus-visible:outline-none animate-in fade-in duration-150', className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+export { Tabs, TabsContent, TabsList, TabsTrigger }
