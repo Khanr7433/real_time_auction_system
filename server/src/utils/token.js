@@ -1,8 +1,16 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 
-// In-memory token blocklist for invalidated tokens (e.g. on logout)
-const tokenBlocklist = new Set();
+// Bounded in-memory token blocklist mapping token -> expiration timestamp (ms)
+const tokenBlocklist = new Map();
+
+const pruneTokenBlocklist = (nowMs = Date.now()) => {
+  for (const [token, expiresAtMs] of tokenBlocklist.entries()) {
+    if (expiresAtMs <= nowMs) {
+      tokenBlocklist.delete(token);
+    }
+  }
+};
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -10,6 +18,7 @@ const generateToken = (user) => {
       id: user._id.toString(),
       email: user.email,
       role: user.role,
+      tokenVersion: typeof user.tokenVersion === 'number' ? user.tokenVersion : 0,
     },
     config.jwtSecret,
     {
@@ -19,17 +28,33 @@ const generateToken = (user) => {
 };
 
 const verifyToken = (token) => {
-  if (tokenBlocklist.has(token)) {
+  if (isTokenInvalidated(token)) {
     throw new Error('Token has been invalidated');
   }
   return jwt.verify(token, config.jwtSecret);
 };
 
 const invalidateToken = (token) => {
-  tokenBlocklist.add(token);
+  if (!token || typeof token !== 'string') return;
+  pruneTokenBlocklist();
+
+  let expiresAtMs = Date.now() + 24 * 60 * 60 * 1000;
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded && typeof decoded.exp === 'number') {
+      expiresAtMs = decoded.exp * 1000;
+    }
+  } catch {
+    // Fall back to 24h cap if token is unparseable
+  }
+
+  if (expiresAtMs > Date.now()) {
+    tokenBlocklist.set(token, expiresAtMs);
+  }
 };
 
 const isTokenInvalidated = (token) => {
+  pruneTokenBlocklist();
   return tokenBlocklist.has(token);
 };
 
@@ -38,4 +63,6 @@ export {
   verifyToken,
   invalidateToken,
   isTokenInvalidated,
+  pruneTokenBlocklist,
+  tokenBlocklist,
 };

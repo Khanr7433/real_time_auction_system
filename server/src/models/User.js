@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      maxlength: [254, 'Email cannot exceed 254 characters'],
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
     passwordHash: {
@@ -23,24 +24,33 @@ const userSchema = new mongoose.Schema(
     displayName: {
       type: String,
       trim: true,
+      maxlength: [80, 'Display name cannot exceed 80 characters'],
       default: '',
     },
     contactInfo: {
       type: String,
       trim: true,
+      maxlength: [200, 'Contact info cannot exceed 200 characters'],
       default: '',
     },
     avatar: {
       type: String,
+      trim: true,
+      maxlength: [500, 'Avatar URL cannot exceed 500 characters'],
       default: '',
     },
     isSuspended: {
       type: Boolean,
       default: false,
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
     resetPasswordToken: {
       type: String,
       default: null,
+      index: true,
     },
     resetPasswordExpires: {
       type: Date,

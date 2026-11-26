@@ -3,10 +3,12 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env') });
 
+const isTestEnv = process.env.NODE_ENV === 'test';
+
 const config = {
   port: process.env.PORT || 5000,
   mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/auction_system',
-  jwtSecret: process.env.JWT_SECRET || 'super_secret_bidnow_jwt_key_2026',
+  jwtSecret: process.env.JWT_SECRET || (isTestEnv ? 'test_only_jwt_secret' : ''),
   jwtExpiry: process.env.JWT_EXPIRY || '1h',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
 };
