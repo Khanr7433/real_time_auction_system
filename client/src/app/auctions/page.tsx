@@ -63,7 +63,7 @@ export default function AuctionsBrowsePage() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const minNum = minPrice !== "" ? Number(minPrice) : null;
@@ -92,6 +92,7 @@ export default function AuctionsBrowsePage() {
   // Live countdown ticker for visible auction cards
   useEffect(() => {
     if (auctions.length === 0) return;
+    setNowMs(Date.now());
     const interval = setInterval(() => {
       setNowMs(Date.now());
     }, 1000);
@@ -326,9 +327,10 @@ export default function AuctionsBrowsePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {auctions.map((auction) => {
             const parsedEndMs = auction.endTime ? new Date(auction.endTime).getTime() : NaN;
-            const liveRemaining = Number.isFinite(parsedEndMs)
-              ? Math.max(0, Math.ceil((parsedEndMs - nowMs) / 1000))
-              : (auction.timeRemainingSeconds ?? 0);
+            const liveRemaining =
+              nowMs !== null && Number.isFinite(parsedEndMs)
+                ? Math.max(0, Math.ceil((parsedEndMs - nowMs) / 1000))
+                : (auction.timeRemainingSeconds ?? 0);
             const hasEnded = liveRemaining <= 0 || auction.status !== "live";
             return (
               <Link
