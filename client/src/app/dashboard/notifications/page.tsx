@@ -38,6 +38,12 @@ export default function NotificationsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const emitUnreadSync = useCallback((count: number) => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('notifications:updated', { detail: { unreadCount: count } }));
+    }
+  }, []);
+
   const fetchNotifications = useCallback(
     async (currentPage: number, currentFilter: 'all' | 'unread') => {
       setIsLoading(true);
@@ -54,15 +60,17 @@ export default function NotificationsPage() {
         const data: NotificationsResponse = await api.get(`/notifications?${queryParams.toString()}`);
         setNotifications(data.notifications || []);
         setTotal(data.total || 0);
-        setUnreadCount(data.unreadCount || 0);
+        const nextUnread = data.unreadCount || 0;
+        setUnreadCount(nextUnread);
         setTotalPages(data.totalPages || 1);
+        emitUnreadSync(nextUnread);
       } catch (err: any) {
         setError(err.message || 'Failed to load notifications');
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [emitUnreadSync]
   );
 
   useEffect(() => {
@@ -76,8 +84,15 @@ export default function NotificationsPage() {
     if (!socket) return;
 
     const handleNewNotification = (notif: NotificationItem) => {
-      setNotifications((prev) => [notif, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+      setNotifications((prev) => {
+        if (notif._id && prev.some((item) => item._id === notif._id)) {
+          return prev;
+        }
+        return [notif, ...prev];
+      });
+      if (notif._id) {
+        setUnreadCount((prev) => prev + 1);
+      }
       setTotal((prev) => prev + 1);
     };
 
@@ -88,18 +103,30 @@ export default function NotificationsPage() {
     };
   }, [socket]);
 
-  const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
+  const handleMarkAsRead = async (notif: NotificationItem, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    try {
-      const res = await api.patch(`/notifications/${id}/read`);
+    if (notif.isRead) return;
+
+    if (!notif._id) {
       setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+        filter === 'unread'
+          ? prev.filter((n) => n !== notif)
+          : prev.map((n) => (n === notif ? { ...n, isRead: true } : n))
       );
-      if (res.unreadCount !== undefined) {
-        setUnreadCount(res.unreadCount);
-      } else {
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+      return;
+    }
+
+    const notifId = notif._id;
+    try {
+      const res = await api.patch(`/notifications/${notifId}/read`);
+      setNotifications((prev) =>
+        filter === 'unread'
+          ? prev.filter((n) => n._id !== notifId)
+          : prev.map((n) => (n._id === notifId ? { ...n, isRead: true } : n))
+      );
+      const nextUnread = res?.unreadCount !== undefined ? res.unreadCount : Math.max(0, unreadCount - 1);
+      setUnreadCount(nextUnread);
+      emitUnreadSync(nextUnread);
     } catch (err: any) {
       console.error('Failed to mark notification as read:', err.message);
     }
@@ -108,8 +135,11 @@ export default function NotificationsPage() {
   const handleMarkAllAsRead = async () => {
     try {
       await api.patch('/notifications/read-all');
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setNotifications((prev) =>
+        filter === 'unread' ? [] : prev.map((n) => ({ ...n, isRead: true }))
+      );
       setUnreadCount(0);
+      emitUnreadSync(0);
     } catch (err: any) {
       console.error('Failed to mark all as read:', err.message);
     }
@@ -273,12 +303,13 @@ export default function NotificationsPage() {
         </Card>
       ) : (
         <div className="space-y-2.5">
-          {notifications.map((notif) => {
+          {notifications.map((notif, index) => {
             const auctionId = notif.data?.auctionId;
+            const itemKey = notif._id || `local-${index}-${notif.createdAt || ''}`;
             return (
               <div
-                key={notif._id}
-                onClick={() => !notif.isRead && handleMarkAsRead(notif._id)}
+                key={itemKey}
+                onClick={() => !notif.isRead && handleMarkAsRead(notif)}
                 className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
                   notif.isRead
                     ? 'border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/50 dark:bg-neutral-900/30 opacity-75 hover:opacity-100'
@@ -297,7 +328,7 @@ export default function NotificationsPage() {
                           notif.isRead ? 'font-medium text-neutral-700 dark:text-neutral-300' : 'font-semibold text-foreground font-montserrat'
                         }`}
                       >
-                        {notif.title}
+                        {notif.title || 'Notification'}
                       </h4>
                       <span className="text-[11px] text-neutral-500 shrink-0">
                         {formatRelativeTime(notif.createdAt)}
@@ -314,7 +345,7 @@ export default function NotificationsPage() {
                           href={`/auctions/${auctionId}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!notif.isRead) handleMarkAsRead(notif._id);
+                            if (!notif.isRead) handleMarkAsRead(notif);
                           }}
                           className="inline-flex items-center gap-1 text-xs text-yellow-800 dark:text-orange-200 hover:underline font-medium"
                         >
@@ -326,7 +357,7 @@ export default function NotificationsPage() {
 
                   {!notif.isRead && (
                     <button
-                      onClick={(e) => handleMarkAsRead(notif._id, e)}
+                      onClick={(e) => handleMarkAsRead(notif, e)}
                       title="Mark as read"
                       className="size-2 rounded-full bg-foreground dark:bg-white shrink-0 mt-2 hover:scale-125 transition-transform cursor-pointer"
                     />

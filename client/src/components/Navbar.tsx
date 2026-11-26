@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
@@ -20,6 +21,7 @@ import {
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { socket } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
@@ -37,10 +39,35 @@ export function Navbar() {
         }
       })
       .catch(() => {});
+
+    const handleNotificationsUpdated = (event: Event) => {
+      const custom = event as CustomEvent<{ unreadCount?: number }>;
+      if (typeof custom.detail?.unreadCount === "number") {
+        setUnreadCount(custom.detail.unreadCount);
+      }
+    };
+
+    window.addEventListener("notifications:updated", handleNotificationsUpdated);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("notifications:updated", handleNotificationsUpdated);
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!socket || !isAuthenticated) return;
+
+    const handleNewNotification = () => {
+      setUnreadCount((prev) => prev + 1);
+    };
+
+    socket.on("notification", handleNewNotification);
+
+    return () => {
+      socket.off("notification", handleNewNotification);
+    };
+  }, [socket, isAuthenticated]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/70 dark:bg-black/60 backdrop-blur-md transition-colors">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSocket } from '@/context/SocketContext';
 import {
@@ -44,8 +44,14 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const { socket } = useSocket();
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const removeToast = useCallback((id: string) => {
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -58,13 +64,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
       const duration = toast.duration ?? 6000;
       if (duration > 0) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+          timersRef.current.delete(id);
           removeToast(id);
         }, duration);
+        timersRef.current.set(id, timer);
       }
     },
     [removeToast]
   );
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   // Listen to WebSocket notification events from server
   useEffect(() => {
@@ -122,9 +138,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const handleEndingSoon = (data: any) => {
       addToast({
         type: 'auction_ending_soon',
-        title: 'Ending Soon',
-        message: data.message || 'An auction you are watching will end in 5 minutes!',
-        data: data.data,
+        title: data?.title || 'Ending Soon',
+        message: data?.message || 'An auction you are watching will end in 5 minutes!',
+        data: data?.data ?? data,
       });
     };
 
@@ -132,9 +148,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const handleSystemAnnouncement = (data: any) => {
       addToast({
         type: 'system_announcement',
-        title: data.title || 'System Announcement',
-        message: data.message || 'Notice from BidNow administration.',
-        data: data.data,
+        title: data?.title || 'System Announcement',
+        message: data?.message || 'Notice from BidNow administration.',
+        data: data?.data ?? data,
         duration: 10000,
       });
     };
@@ -144,6 +160,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     socket.on('auction_sold', handleAuctionSold);
     socket.on('auction_unsold', handleAuctionUnsold);
     socket.on('auction_ending_soon', handleEndingSoon);
+    socket.on('ending_soon', handleEndingSoon);
     socket.on('system_announcement', handleSystemAnnouncement);
 
     return () => {
@@ -152,6 +169,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       socket.off('auction_sold', handleAuctionSold);
       socket.off('auction_unsold', handleAuctionUnsold);
       socket.off('auction_ending_soon', handleEndingSoon);
+      socket.off('ending_soon', handleEndingSoon);
       socket.off('system_announcement', handleSystemAnnouncement);
     };
   }, [socket, addToast]);
